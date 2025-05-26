@@ -38,6 +38,7 @@ import io.flutter.plugin.common.PluginRegistry
 class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
   PluginRegistry.RequestPermissionsResultListener {
 
+
   companion object {
     const val TAG = "JBluetoothPlugin"
     const val REQUEST_BLUETOOTH_PERMISSIONS = 1001
@@ -55,6 +56,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
     const val getName = "getName"
     const val startDiscovery = "startDiscovery"
     const val stopDiscovery = "stopDiscovery"
+    var instance: JBluetoothPlugin? = null
 //    const val uuidString = "00001101-0000-1000-8000-00805F9B34FB"
 
 //    const val ensurePermissions = "ensurePermissions"
@@ -86,8 +88,14 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
   private lateinit var connectionStateChannel: EventChannel
   private lateinit var connectionStateStreamHandler: ConnectionStateStreamHandler
 
+  private var incomingSink: EventChannel.EventSink? = null
+  private lateinit var incomingChannel: EventChannel
+
 
   override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+
+    instance = this
+
     messenger = flutterPluginBinding
     context = flutterPluginBinding.applicationContext
     channel = MethodChannel(
@@ -130,6 +138,17 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
 
     connectionStateStreamHandler = ConnectionStateStreamHandler()
     connectionStateChannel.setStreamHandler(connectionStateStreamHandler)
+
+     incomingChannel = EventChannel(flutterPluginBinding.binaryMessenger, "j_bluetooth/incoming")
+    incomingChannel.setStreamHandler(object : EventChannel.StreamHandler {
+      override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+        incomingSink = events
+      }
+
+      override fun onCancel(arguments: Any?) {
+        incomingSink = null
+      }
+    })
 
 
     Log.d(TAG, "onAttachedToEngine: JafraBluetoothPlugin was created")
@@ -246,7 +265,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
             // Save socket and start I/O stream handling
             Log.d(TAG, "Server accepted connection")
             bluetoothSocket = socket
-            connectionHandler = BluetoothConnectionHandler(socket, messenger.binaryMessenger, connectionStateStreamHandler)
+            connectionHandler = BluetoothConnectionHandler(socket, connectionStateStreamHandler)
             connectionHandler?.start()
             connectionStateStreamHandler.notifyConnected()
           },
@@ -273,7 +292,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
             Log.d(TAG, "Client connected to server")
             // Save socket and start I/O stream handling
             bluetoothSocket = socket
-            connectionHandler = BluetoothConnectionHandler(socket, messenger.binaryMessenger, connectionStateStreamHandler)
+            connectionHandler = BluetoothConnectionHandler(socket,  connectionStateStreamHandler)
             connectionHandler?.start()
             connectionStateStreamHandler.notifyConnected()
           },
@@ -296,6 +315,8 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
   }
 
   override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+    incomingSink = null
+    instance = null
     channel.setMethodCallHandler(null)
 
 
@@ -305,6 +326,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
     adapterStateChannel.setStreamHandler(null)
     isDiscoveringChannel.setStreamHandler(null)
     connectionStateChannel.setStreamHandler(null)
+    incomingChannel.setStreamHandler(null)
   }
 
   override fun onRequestPermissionsResult(
@@ -384,5 +406,9 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
 
     // All required permissions are already granted or not needed
     onGranted()
+  }
+
+  fun sendIncomingMessage(message: String) {
+    incomingSink?.success(message)
   }
 }
