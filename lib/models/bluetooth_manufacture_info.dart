@@ -1,7 +1,7 @@
 //
 
-import 'BluetoothDeviceMajorType.dart';
-import 'BluetoothDeviceMinorType.dart';
+import 'bluetooth_device_major_type.dart';
+import 'bluetooth_device_minor_type.dart';
 
 class BluetoothManufactureInfo {
   final int? deviceClass;

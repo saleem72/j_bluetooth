@@ -42,17 +42,17 @@ enum BluetoothDeviceMajorType {
   Color get color {
     switch (this) {
       case BluetoothDeviceMajorType.computer:
-        return Color(0xFFFFC300);
+        return const Color(0xFFFFC300);
       case BluetoothDeviceMajorType.phone:
-        return Color(0xFF2196F3);
+        return const Color(0xFF2196F3);
       // case BluetoothDeviceTypeNew.lAN:
       //   return Colors.white;
       case BluetoothDeviceMajorType.audio:
-        return Color(0xFF3BFF49);
+        return const Color(0xFF3BFF49);
       // case BluetoothDeviceTypeNew.peripheral:
       //   return Colors.white;
       case BluetoothDeviceMajorType.imaging:
-        return Color(0xFF6E1BFF);
+        return const Color(0xFF6E1BFF);
       // case BluetoothDeviceTypeNew.wearable:
       //   return Colors.white;
       // case BluetoothDeviceTypeNew.toy:
@@ -62,7 +62,7 @@ enum BluetoothDeviceMajorType {
       // case BluetoothDeviceTypeNew.unCategorized:
       //   return Colors.white;
       default:
-        return Color(0xFFD8DC2F);
+        return const Color(0xFFD8DC2F);
     }
   }
 

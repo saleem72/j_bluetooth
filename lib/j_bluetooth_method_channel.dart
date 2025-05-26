@@ -80,7 +80,7 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
 
     _incomingSubscription =
         _incomingChannel.receiveBroadcastStream().listen((data) {
-      print("Received from Bluetooth: $data");
+      log("Received from Bluetooth: $data");
     });
   }
 
@@ -176,13 +176,13 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
     _connectionSubscription =
         _connectionChannel.receiveBroadcastStream().listen((state) {
       if (state == "connected") {
-        print("Bluetooth connection established");
+        log("Bluetooth connection established");
         // Proceed to send/receive messages
       } else if (state == "disconnected") {
-        print("Bluetooth connection lost");
+        log("Bluetooth connection lost");
       }
     }, onError: (error) {
-      print("Connection error: $error");
+      log("Connection error: $error");
     });
   }
 }

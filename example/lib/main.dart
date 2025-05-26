@@ -5,7 +5,6 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 import 'package:j_bluetooth/j_bluetooth.dart';
-import 'package:j_bluetooth/views/device_tile.dart';
 
 void main() {
   runApp(const MyApp());

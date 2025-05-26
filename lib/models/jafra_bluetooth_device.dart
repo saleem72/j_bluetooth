@@ -1,8 +1,8 @@
 //
 
 import 'package:equatable/equatable.dart';
-import 'package:j_bluetooth/models/BluetoothDeviceMajorType.dart';
-import 'package:j_bluetooth/models/BluetoothDeviceMinorType.dart';
+import 'package:j_bluetooth/models/bluetooth_device_major_type.dart';
+import 'package:j_bluetooth/models/bluetooth_device_minor_type.dart';
 
 class JafraBluetoothDevice extends Equatable {
   final String? name;
