@@ -11,6 +11,7 @@ class JafraBluetoothDevice extends Equatable {
   final int deviceClass;
   final int majorDeviceClass;
   final int minorDeviceClass;
+  final int rssi;
 
   final BluetoothDeviceMajorType majorCategory;
   final BluetoothDeviceMinorType? minorCategory;
@@ -23,6 +24,7 @@ class JafraBluetoothDevice extends Equatable {
     required this.minorDeviceClass,
     required this.majorCategory,
     required this.minorCategory,
+    required this.rssi,
   });
 
   factory JafraBluetoothDevice.fromMap(dynamic data) {
@@ -38,6 +40,7 @@ class JafraBluetoothDevice extends Equatable {
       minorCategory: data['deviceClass'] is int
           ? BluetoothDeviceMinorType.fromFullClass(data['deviceClass'])
           : BluetoothDeviceMinorType.unknownDevice,
+      rssi: data["rssi"],
     );
   }
 

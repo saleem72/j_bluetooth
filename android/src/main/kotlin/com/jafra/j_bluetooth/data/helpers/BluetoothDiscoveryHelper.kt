@@ -86,9 +86,10 @@ class BluetoothDiscoveryHelper(
                             @Suppress("DEPRECATION")
                             intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
                         }
+                        val rssi: Short = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE)
                         device?.let {
                             Log.d(TAG, "device: $it")
-                            eventSink?.success(it.toJafraBluetoothDevice().toMap())
+                            eventSink?.success(it.toJafraBluetoothDevice(rssi).toMap())
                         }
 
                     }

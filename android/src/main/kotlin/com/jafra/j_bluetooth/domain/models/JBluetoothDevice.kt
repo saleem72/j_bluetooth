@@ -6,4 +6,5 @@ data class JBluetoothDevice(
     val deviceClass : Int,
     val majorDeviceClass : Int,
     val minorDeviceClass : Int,
+    val rssi: Int
 )

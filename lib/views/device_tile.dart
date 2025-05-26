@@ -88,20 +88,22 @@ class DeviceTile extends StatelessWidget {
             ],
           ),
         ),
-        // Container(
-        //   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        //   // alignment: Alignment.center,
-        //   decoration: BoxDecoration(
-        //     color: Colors.white,
-        //     borderRadius: BorderRadius.circular(12),
-        //   ),
-        //   child: Text(
-        //     '${result.rssi} dBm',
-        //     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-        //           color: result.color,
-        //         ),
-        //   ),
-        // ),
+        result.rssi != 0
+            ? Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                // alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${result.rssi} dBm',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: result.majorCategory.color,
+                      ),
+                ),
+              )
+            : const SizedBox.shrink(),
         const SizedBox(
           height: 48,
           child: VerticalDivider(color: Colors.black45),

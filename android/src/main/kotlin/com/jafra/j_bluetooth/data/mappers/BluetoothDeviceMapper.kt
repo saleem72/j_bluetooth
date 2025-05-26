@@ -11,7 +11,7 @@ fun getMinorDeviceClass(bluetoothClass: Int): Int {
 }
 
 @SuppressLint("MissingPermission")
-fun BluetoothDevice.toJafraBluetoothDevice(): JBluetoothDevice {
+fun BluetoothDevice.toJafraBluetoothDevice(rssi: Short?): JBluetoothDevice {
     val deviceClass = this.bluetoothClass.deviceClass
     val majorDeviceClass = bluetoothClass.majorDeviceClass
     val minorDeviceClass = getMinorDeviceClass(deviceClass)
@@ -22,6 +22,7 @@ fun BluetoothDevice.toJafraBluetoothDevice(): JBluetoothDevice {
         deviceClass = deviceClass,
         majorDeviceClass = majorDeviceClass,
         minorDeviceClass = minorDeviceClass,
+        rssi = rssi?.toInt() ?: 0
     )
 }
 
@@ -35,6 +36,7 @@ fun JBluetoothDevice.toMap(): HashMap<String, Any> {
     map["deviceClass"] = deviceClass
     map["majorDeviceClass"] = majorDeviceClass
     map["minorDeviceClass"] = minorDeviceClass
+    map["rssi"] = rssi
 
     return map
 }

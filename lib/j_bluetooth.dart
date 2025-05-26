@@ -4,6 +4,7 @@ import 'package:j_bluetooth/models/jafra_bluetooth_device.dart';
 import 'j_bluetooth_platform_interface.dart';
 
 export './models/models.dart';
+export './views/views.dart';
 
 class JBluetooth {
   JBluetoothPlatform get singleton => JBluetoothPlatform.instance;
