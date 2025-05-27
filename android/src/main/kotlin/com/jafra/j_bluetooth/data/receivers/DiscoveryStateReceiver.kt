@@ -1,4 +1,4 @@
-package com.jafra.j_bluetooth.data.helpers
+package com.jafra.j_bluetooth.data.receivers
 
 import android.bluetooth.BluetoothAdapter
 import android.content.BroadcastReceiver
@@ -8,7 +8,12 @@ import android.content.IntentFilter
 import io.flutter.Log
 import io.flutter.plugin.common.EventChannel
 
-class BluetoothIsDiscoveringStreamHandler(
+/**
+ * It's a BroadcastReceiver receive BluetoothAdapter.ACTION_DISCOVERY_FINISHED
+ * and BluetoothAdapter.ACTION_DISCOVERY_STARTED
+ * it emits event when discovery process starts or ends
+ */
+class DiscoveryStateReceiver(
     private val context: Context
 ) : EventChannel.StreamHandler {
 

@@ -1,4 +1,4 @@
-package com.jafra.j_bluetooth.data.helpers
+package com.jafra.j_bluetooth.data.receivers
 
 import android.bluetooth.BluetoothAdapter
 import android.content.BroadcastReceiver
@@ -7,7 +7,12 @@ import android.content.Intent
 import android.content.IntentFilter
 import io.flutter.plugin.common.EventChannel
 
-class BluetoothStateStreamHandler(
+/**
+ * It's BroadcastReceiver receive BluetoothAdapter.ACTION_STATE_CHANGED
+ * emit BluetoothAdapter state every time BluetoothAdapter's state changes
+ * it emit the state as string
+ */
+class BluetoothAdapterStateReceiver(
     private val context: Context
 ) : EventChannel.StreamHandler {
 

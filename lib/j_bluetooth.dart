@@ -42,4 +42,7 @@ class JBluetooth {
 
   Future<void> connectToServer() => singleton.connectToServer();
   Stream<String> incomingMessages() => singleton.incomingMessages();
+
+  Future<List<JafraBluetoothDevice>> pairedDevices() =>
+      singleton.pairedDevices();
 }

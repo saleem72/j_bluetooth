@@ -69,4 +69,6 @@ abstract class JBluetoothPlatform extends PlatformInterface {
   Future<void> connectToServer();
 
   Stream<String> incomingMessages();
+
+  Future<List<JafraBluetoothDevice>> pairedDevices();
 }

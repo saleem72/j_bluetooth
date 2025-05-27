@@ -2,16 +2,17 @@ package com.jafra.j_bluetooth.data.helpers
 
 import android.bluetooth.BluetoothSocket
 import com.jafra.j_bluetooth.JBluetoothPlugin
+import com.jafra.j_bluetooth.data.streams.ConnectionStateStreamHandler
+import com.jafra.j_bluetooth.data.streams.IncomingMessagesStreamHandler
 import io.flutter.Log
-import io.flutter.plugin.common.BinaryMessenger
-import io.flutter.plugin.common.EventChannel
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 
-class BluetoothConnectionHandler(
+class BluetoothConnection(
     private val socket: BluetoothSocket,
-    private val connectionStateStreamHandler: ConnectionStateStreamHandler
+    private val connectionStateStreamHandler: ConnectionStateStreamHandler?,
+    private val incomingMessagesStreamHandler: IncomingMessagesStreamHandler?
 ) {
 
     private var inputStream: InputStream? = null
@@ -30,17 +31,18 @@ class BluetoothConnectionHandler(
                     val bytesRead = inputStream?.read(buffer) ?: -1
                     if (bytesRead == -1) {
                         Log.d("BluetoothConnection", "Connection lost (stream closed)")
-                        connectionStateStreamHandler.notifyDisconnected()
+                        connectionStateStreamHandler?.notifyDisconnected()
                         break
                     }
                     if (bytesRead > 0) {
                         val received = String(buffer, 0, bytesRead)
                         Log.d("BluetoothConnection", "Received: $received")
-                        JBluetoothPlugin.instance?.sendIncomingMessage(received)
+                        // TODO("Fix this")
+                        incomingMessagesStreamHandler?.sendIncomingMessage(received)
                     }
                 } catch (e: IOException) {
                     Log.e("BluetoothConnection", "Read failed", e)
-                    connectionStateStreamHandler.notifyDisconnected()
+                    connectionStateStreamHandler?.notifyDisconnected()
                     break
                 }
             }
@@ -54,7 +56,7 @@ class BluetoothConnectionHandler(
             Log.d("BluetoothConnection", "Sent: $data")
         } catch (e: IOException) {
             Log.e("BluetoothConnection", "Write failed", e)
-            connectionStateStreamHandler.notifyDisconnected()
+            connectionStateStreamHandler?.notifyDisconnected()
         }
     }
 
@@ -66,7 +68,7 @@ class BluetoothConnectionHandler(
         } catch (e: IOException) {
             Log.e("BluetoothConnection", "Socket close failed", e)
         } finally {
-            connectionStateStreamHandler.notifyDisconnected()
+            connectionStateStreamHandler?.notifyDisconnected()
         }
     }
 }

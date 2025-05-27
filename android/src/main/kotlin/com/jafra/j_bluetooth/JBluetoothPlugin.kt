@@ -15,13 +15,17 @@ import android.provider.Settings
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.jafra.j_bluetooth.data.helpers.BluetoothClient
-import com.jafra.j_bluetooth.data.helpers.BluetoothConnectionHandler
-import com.jafra.j_bluetooth.data.helpers.BluetoothDiscoveryHelper
-import com.jafra.j_bluetooth.data.helpers.BluetoothIsDiscoveringStreamHandler
-import com.jafra.j_bluetooth.data.helpers.BluetoothPairingHelper
+import com.jafra.j_bluetooth.data.helpers.BluetoothConnection
+import com.jafra.j_bluetooth.data.receivers.DeviceFoundReceiver
+import com.jafra.j_bluetooth.data.receivers.DiscoveryStateReceiver
+import com.jafra.j_bluetooth.data.receivers.BondingStateReceiver
 import com.jafra.j_bluetooth.data.helpers.BluetoothServer
-import com.jafra.j_bluetooth.data.helpers.BluetoothStateStreamHandler
-import com.jafra.j_bluetooth.data.helpers.ConnectionStateStreamHandler
+import com.jafra.j_bluetooth.data.mappers.toJafraBluetoothDevice
+import com.jafra.j_bluetooth.data.mappers.toMap
+import com.jafra.j_bluetooth.data.receivers.BluetoothAdapterStateReceiver
+import com.jafra.j_bluetooth.data.receivers.AclConnectionReceiver
+import com.jafra.j_bluetooth.data.streams.ConnectionStateStreamHandler
+import com.jafra.j_bluetooth.data.streams.IncomingMessagesStreamHandler
 import io.flutter.Log
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -48,6 +52,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
     const val isDiscoveringChannelName = "is_discovering"
     const val connectionStateChannelName = "connection_state"
     const val inComingChannelName = "incoming"
+    const val aclChannelName = "acl_connection"
 
     const val isAvailable = "isAvailable"
     const val isOn = "isOn"
@@ -62,7 +67,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
     const val connectToServer = "connectToServer"
     const val pairDevice = "pairDevice"
     const val sendMessage = "sendMessage"
-    var instance: JBluetoothPlugin? = null
+    const val pairedDevices = "pairedDevices"
 //    const val uuidString = "00001101-0000-1000-8000-00805F9B34FB"
 
 //    const val ensurePermissions = "ensurePermissions"
@@ -74,19 +79,22 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
 
   private lateinit var channel: MethodChannel
 
-  private lateinit var discoveryChannel: EventChannel
-  private lateinit var adapterStateChannel: EventChannel
-  private lateinit var isDiscoveringChannel: EventChannel
-  private lateinit var connectionStateChannel: EventChannel
-  private lateinit var incomingChannel: EventChannel
+  private  var deviceFoundChannel: EventChannel? = null
+  private  var adapterStateChannel: EventChannel? = null
+  private  var discoveryStateChannel: EventChannel? = null
+  private  var connectionStateChannel: EventChannel? = null
+  private  var incomingMessagesChannel: EventChannel? = null
+  private var aclConnectionChannel: EventChannel? = null
 
-  private lateinit var bluetoothDiscoveryHelper: BluetoothDiscoveryHelper
-  private lateinit var adapterStateHandler: BluetoothStateStreamHandler
-  private lateinit var bluetoothIsDiscoveringStreamHandler: BluetoothIsDiscoveringStreamHandler
-  private var connectionHandler: BluetoothConnectionHandler? = null
-  private lateinit var connectionStateStreamHandler: ConnectionStateStreamHandler
+  private  var deviceFoundReceiver: DeviceFoundReceiver? = null
+  private  var adapterStateReceiver: BluetoothAdapterStateReceiver? = null
+  private  var discoveryStateReceiver: DiscoveryStateReceiver? = null
+  private  var connectionStateStreamHandler: ConnectionStateStreamHandler? = null
+  private var aclConnectionReceiver: AclConnectionReceiver? = null
+  private var incomingMessagesStreamHandler: IncomingMessagesStreamHandler? = null
 
-  private var pairingHelper: BluetoothPairingHelper? = null
+  private var connectionHandler: BluetoothConnection? = null
+  private var bondingStateReceiver: BondingStateReceiver? = null
 
   private var pendingOnGranted: (() -> Unit)? = null
   private var pendingOnDenied: ((String) -> Unit)? = null
@@ -95,70 +103,50 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
   private lateinit var messenger: FlutterPlugin.FlutterPluginBinding
 
 
-  private var incomingSink: EventChannel.EventSink? = null
+
 
 
   override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
 
-    instance = this
 
     messenger = flutterPluginBinding
     context = flutterPluginBinding.applicationContext
+    bluetoothAdapter = getBluetoothAdapter(context)
     channel = MethodChannel(
       flutterPluginBinding.binaryMessenger,
       channelName
     )
     channel.setMethodCallHandler(this)
-    bluetoothAdapter = getBluetoothAdapter(context)
 
-    discoveryChannel = EventChannel(
-      flutterPluginBinding.binaryMessenger,
-      "$channelName/$discoveryChannelName"
-    )
-    bluetoothDiscoveryHelper = BluetoothDiscoveryHelper(context, bluetoothAdapter)
-    discoveryChannel.setStreamHandler(bluetoothDiscoveryHelper)
+    createDeviceFoundChannel(flutterPluginBinding)
 
-    adapterStateChannel = EventChannel(
-      flutterPluginBinding.binaryMessenger,
-      "$channelName/$adapterStateChannelName"
-    )
+    createAdapterStateChannel(flutterPluginBinding)
 
-    adapterStateHandler = BluetoothStateStreamHandler(flutterPluginBinding.applicationContext)
+    createDiscoveryStateChannel(flutterPluginBinding)
 
-    adapterStateChannel.setStreamHandler(adapterStateHandler)
+    bondingStateReceiver = BondingStateReceiver(context)
 
-    isDiscoveringChannel = EventChannel(
-      flutterPluginBinding.binaryMessenger,
-      "$channelName/$isDiscoveringChannelName"
-    )
+    createConnectionStateChannel(flutterPluginBinding)
 
-    bluetoothIsDiscoveringStreamHandler = BluetoothIsDiscoveringStreamHandler(context)
-    isDiscoveringChannel.setStreamHandler(bluetoothIsDiscoveringStreamHandler)
+    createIncomingMessagesChannel(flutterPluginBinding)
 
-    pairingHelper = BluetoothPairingHelper(context)
-
-    connectionStateChannel = EventChannel(
-      flutterPluginBinding.binaryMessenger,
-      "$channelName/$connectionStateChannelName"
-    )
-
-    connectionStateStreamHandler = ConnectionStateStreamHandler()
-    connectionStateChannel.setStreamHandler(connectionStateStreamHandler)
-
-     incomingChannel = EventChannel(flutterPluginBinding.binaryMessenger, "$channelName/$inComingChannelName")
-    incomingChannel.setStreamHandler(object : EventChannel.StreamHandler {
-      override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
-        incomingSink = events
-      }
-
-      override fun onCancel(arguments: Any?) {
-        incomingSink = null
-      }
-    })
+    createAclConnectionChannel(flutterPluginBinding)
 
 
     Log.d(TAG, "onAttachedToEngine: JafraBluetoothPlugin was created")
   }
+
+  override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+    channel.setMethodCallHandler(null)
+    cleanDiscoveryStateChannel()
+    cleanConnectionStateChannel()
+    cleanIncomingMessagesChannel()
+    cleanDeviceFoundChannel()
+    cleanAdapterStateChannel()
+    cleanAclConnectionChannel()
+  }
+
+
 
   @SuppressLint("MissingPermission")
   override fun onMethodCall(call: MethodCall, result: Result) {
@@ -225,14 +213,17 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
 
       startDiscovery -> {
         Log.d(TAG, "onMethodCall: startDiscovery")
-//        bluetoothAdapter.startDiscovery()
-        bluetoothDiscoveryHelper.startDiscovery()
+        deviceFoundReceiver?.startDiscovery()
       }
 
       stopDiscovery -> {
         Log.d(TAG, "onMethodCall: stopDiscovery")
-//        bluetoothAdapter.cancelDiscovery()
-        bluetoothDiscoveryHelper.stopDiscovery()
+        deviceFoundReceiver?.stopDiscovery()
+      }
+
+      pairedDevices -> {
+       val devices =  bluetoothAdapter.bondedDevices.map { it.toJafraBluetoothDevice(null).toMap() }
+        result.success(devices)
       }
 
       pairDevice -> {
@@ -244,7 +235,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
 
         val device = bluetoothAdapter.getRemoteDevice(address)
 
-        pairingHelper?.pairDevice(device, object : BluetoothPairingHelper.PairingCallback {
+        bondingStateReceiver?.pairDevice(device, object : BondingStateReceiver.PairingCallback {
           override fun onBonding(device: BluetoothDevice) {
             Log.d("Plugin", "Bonding started...")
             // Optional: notify Dart side
@@ -252,13 +243,13 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
 
           override fun onBonded(device: BluetoothDevice) {
             Log.d("Plugin", "Bonded successfully")
-            pairingHelper?.cleanup()
+            bondingStateReceiver?.cleanup()
             result.success("bonded")
           }
 
           override fun onBondingFailed(device: BluetoothDevice) {
             Log.d("Plugin", "Bonding failed")
-            pairingHelper?.cleanup()
+            bondingStateReceiver?.cleanup()
             result.error("BONDING_FAILED", "Could not pair with ${device.name}", null)
           }
         })
@@ -271,14 +262,14 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
             // Save socket and start I/O stream handling
             Log.d(TAG, "Server accepted connection")
             bluetoothSocket = socket
-            connectionHandler = BluetoothConnectionHandler(socket, connectionStateStreamHandler)
+            connectionHandler = BluetoothConnection(socket, connectionStateStreamHandler, incomingMessagesStreamHandler)
             connectionHandler?.start()
-            connectionStateStreamHandler.notifyConnected()
+            connectionStateStreamHandler?.notifyConnected()
           },
           onError = { e ->
             Log.e(TAG, "Server error: ${e.message}")
-            connectionStateStreamHandler.notifyDisconnected() // 👈 Added this
-            connectionStateStreamHandler.notifyError(e.message ?: "Unknown Error") // 👈 Added this
+            connectionStateStreamHandler?.notifyDisconnected() // 👈 Added this
+            connectionStateStreamHandler?.notifyError(e.message ?: "Unknown Error") // 👈 Added this
           }
         )
         result.success("server_started")
@@ -298,14 +289,14 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
             Log.d(TAG, "Client connected to server")
             // Save socket and start I/O stream handling
             bluetoothSocket = socket
-            connectionHandler = BluetoothConnectionHandler(socket,  connectionStateStreamHandler)
+            connectionHandler = BluetoothConnection(socket,  connectionStateStreamHandler, incomingMessagesStreamHandler)
             connectionHandler?.start()
-            connectionStateStreamHandler.notifyConnected()
+            connectionStateStreamHandler?.notifyConnected()
           },
           onError = { e ->
             Log.e(TAG, "Client connection failed: ${e.message}")
-            connectionStateStreamHandler.notifyDisconnected() // 👈 Added this
-            connectionStateStreamHandler.notifyError(e.message ?: "Unknown Error") // 👈 Added this
+            connectionStateStreamHandler?.notifyDisconnected() // 👈 Added this
+            connectionStateStreamHandler?.notifyError(e.message ?: "Unknown Error") // 👈 Added this
           }
         )
         result.success("connecting")
@@ -318,21 +309,6 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
 
       else -> result.notImplemented()
     }
-  }
-
-  override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
-    incomingSink = null
-    instance = null
-    channel.setMethodCallHandler(null)
-
-
-    discoveryChannel.setStreamHandler(null)
-    bluetoothDiscoveryHelper.stopDiscovery()
-
-    adapterStateChannel.setStreamHandler(null)
-    isDiscoveringChannel.setStreamHandler(null)
-    connectionStateChannel.setStreamHandler(null)
-    incomingChannel.setStreamHandler(null)
   }
 
   override fun onRequestPermissionsResult(
@@ -414,7 +390,94 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
     onGranted()
   }
 
-  fun sendIncomingMessage(message: String) {
-    incomingSink?.success(message)
+
+
+
+  private fun createAclConnectionChannel(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+    aclConnectionReceiver = AclConnectionReceiver(context)
+    aclConnectionChannel =
+      EventChannel(flutterPluginBinding.binaryMessenger, "$channelName/$aclChannelName")
+    aclConnectionChannel?.setStreamHandler(aclConnectionReceiver)
   }
+
+  private fun cleanAclConnectionChannel() {
+    aclConnectionChannel?.setStreamHandler(null)
+    aclConnectionChannel = null
+    aclConnectionReceiver = null
+  }
+
+  private fun createDiscoveryStateChannel(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+    discoveryStateChannel = EventChannel(
+      flutterPluginBinding.binaryMessenger,
+      "$channelName/$isDiscoveringChannelName"
+    )
+    discoveryStateReceiver = DiscoveryStateReceiver(context)
+    discoveryStateChannel?.setStreamHandler(discoveryStateReceiver)
+  }
+
+  private fun cleanDiscoveryStateChannel() {
+    discoveryStateChannel?.setStreamHandler(null)
+    discoveryStateChannel = null
+    discoveryStateReceiver = null
+  }
+
+  private fun createDeviceFoundChannel(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+    deviceFoundChannel = EventChannel(
+      flutterPluginBinding.binaryMessenger,
+      "$channelName/$discoveryChannelName"
+    )
+    deviceFoundReceiver = DeviceFoundReceiver(context, bluetoothAdapter)
+    deviceFoundChannel?.setStreamHandler(deviceFoundReceiver)
+  }
+
+  private fun cleanDeviceFoundChannel() {
+    deviceFoundChannel?.setStreamHandler(null)
+    deviceFoundChannel = null
+    deviceFoundReceiver?.stopDiscovery()
+    deviceFoundReceiver = null
+  }
+
+  private fun createAdapterStateChannel(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+    adapterStateChannel = EventChannel(
+      flutterPluginBinding.binaryMessenger,
+      "$channelName/$adapterStateChannelName"
+    )
+    adapterStateReceiver = BluetoothAdapterStateReceiver(flutterPluginBinding.applicationContext)
+    adapterStateChannel?.setStreamHandler(adapterStateReceiver)
+  }
+
+  private fun cleanAdapterStateChannel() {
+    adapterStateChannel?.setStreamHandler(null)
+    adapterStateChannel = null
+    adapterStateReceiver = null
+  }
+
+  private fun createIncomingMessagesChannel(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+    incomingMessagesChannel =
+      EventChannel(flutterPluginBinding.binaryMessenger, "$channelName/$inComingChannelName")
+    incomingMessagesStreamHandler = IncomingMessagesStreamHandler()
+    incomingMessagesChannel?.setStreamHandler(incomingMessagesStreamHandler)
+  }
+
+  private fun cleanIncomingMessagesChannel() {
+    incomingMessagesChannel?.setStreamHandler(null)
+    incomingMessagesChannel = null
+    incomingMessagesStreamHandler = null
+  }
+
+  private fun createConnectionStateChannel(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+    connectionStateChannel = EventChannel(
+      flutterPluginBinding.binaryMessenger,
+      "$channelName/$connectionStateChannelName"
+    )
+    connectionStateStreamHandler = ConnectionStateStreamHandler()
+    connectionStateChannel?.setStreamHandler(connectionStateStreamHandler)
+  }
+
+  private fun cleanConnectionStateChannel() {
+    connectionStateChannel?.setStreamHandler(null)
+    connectionStateChannel = null
+    connectionStateStreamHandler = null
+  }
+
 }

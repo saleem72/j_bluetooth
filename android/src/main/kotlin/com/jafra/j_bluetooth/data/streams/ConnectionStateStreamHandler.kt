@@ -1,4 +1,4 @@
-package com.jafra.j_bluetooth.data.helpers
+package com.jafra.j_bluetooth.data.streams
 
 import io.flutter.plugin.common.EventChannel
 

@@ -1,4 +1,4 @@
-package com.jafra.j_bluetooth.data.helpers
+package com.jafra.j_bluetooth.data.receivers
 
 
 import android.annotation.SuppressLint
@@ -10,7 +10,12 @@ import android.content.IntentFilter
 import android.os.Build
 import android.util.Log
 
-class BluetoothPairingHelper(private val context: Context) {
+
+/**
+ * It's BroadcastReceiver receive  BluetoothDevice.ACTION_BOND_STATE_CHANGED
+ * you should notice BluetoothDevice.ACTION_ACL_CONNECTED, BluetoothDevice.ACTION_ACL_DISCONNECTED
+ */
+class BondingStateReceiver(private val context: Context) {
 
     interface PairingCallback {
         fun onBonding(device: BluetoothDevice)

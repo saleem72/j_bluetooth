@@ -220,6 +220,16 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
 
   @override
   Stream<String> incomingMessages() => _incomingMessagesController.stream;
+
+  @override
+  Future<List<JafraBluetoothDevice>> pairedDevices() async {
+    final data = await methodChannel.invokeMethod(_BluetoothKeys.pairedDevices);
+    if (data is List) {
+      final devices = data.map((e) => JafraBluetoothDevice.fromMap(e)).toList();
+      return devices;
+    }
+    return [];
+  }
 }
 
 abstract class _BluetoothKeys {
@@ -243,4 +253,6 @@ abstract class _BluetoothKeys {
   static const String connectToServer = 'connectToServer';
   static const String pairDevice = 'pairDevice';
   static const String sendMessage = 'sendMessage';
+
+  static const String pairedDevices = 'pairedDevices';
 }

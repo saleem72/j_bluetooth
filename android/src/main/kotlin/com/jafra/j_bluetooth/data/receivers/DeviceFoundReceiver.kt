@@ -1,4 +1,4 @@
-package com.jafra.j_bluetooth.data.helpers
+package com.jafra.j_bluetooth.data.receivers
 
 
 import android.annotation.SuppressLint
@@ -14,8 +14,11 @@ import com.jafra.j_bluetooth.data.mappers.toMap
 import io.flutter.plugin.common.EventChannel
 
 import io.flutter.Log
-
-class BluetoothDiscoveryHelper(
+/**
+ * It's BroadcastReceiver receive BluetoothDevice.ACTION_FOUND
+ * it emits event every time when a new bluetooth device was founded
+ */
+class DeviceFoundReceiver(
     private val context: Context,
     private val bluetoothAdapter: BluetoothAdapter,
 ) : EventChannel.StreamHandler {

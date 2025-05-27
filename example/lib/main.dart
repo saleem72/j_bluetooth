@@ -25,6 +25,7 @@ class _MyAppState extends State<MyApp> {
   String adapterName = 'Unknown';
   BluetoothAdapterState adapterState = BluetoothAdapterState.unknown;
   List<JafraBluetoothDevice> devices = [];
+  List<JafraBluetoothDevice> pairedDevices = [];
   bool isDiscovering = false;
 
   @override
@@ -51,6 +52,9 @@ class _MyAppState extends State<MyApp> {
       platformVersion =
           await _jafraBluetoothPlugin.adapterName ?? 'Unknown platform version';
       adapterState = await _jafraBluetoothPlugin.state;
+
+      pairedDevices = await _jafraBluetoothPlugin.pairedDevices();
+
       _adapterStateSubscription =
           _jafraBluetoothPlugin.discoveredDevices().listen((r) {
         setState(() {
@@ -154,6 +158,10 @@ class _MyAppState extends State<MyApp> {
                 child: const Text('Stop server'),
               ),
             ],
+          ),
+          const SizedBox(height: 16),
+          Column(
+            children: [...pairedDevices.map((e) => DeviceTile(result: e))],
           ),
           const SizedBox(height: 16),
           Column(
