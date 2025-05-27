@@ -142,6 +142,20 @@ class _MyAppState extends State<MyApp> {
             ],
           ),
           const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              FilledButton(
+                onPressed: () => _jafraBluetoothPlugin.connectToServer(),
+                child: const Text('Start server'),
+              ),
+              FilledButton(
+                onPressed: () {},
+                child: const Text('Stop server'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,

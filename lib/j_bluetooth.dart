@@ -1,4 +1,5 @@
 import 'package:j_bluetooth/models/bluetooth_adapter_state.dart';
+import 'package:j_bluetooth/models/bluetooth_connection_state.dart';
 import 'package:j_bluetooth/models/jafra_bluetooth_device.dart';
 
 import 'j_bluetooth_platform_interface.dart';
@@ -32,4 +33,13 @@ class JBluetooth {
   Stream<bool> isDiscovering() => singleton.isDiscovering();
 
   Stream<JafraBluetoothDevice> onDevice() => singleton.onDevice();
+  Stream<BluetoothConnectionState> connectionState() =>
+      singleton.connectionState();
+
+  Future<void> startServer() => singleton.startServer();
+
+  Future<void> sendMessage(String message) => singleton.sendMessage(message);
+
+  Future<void> connectToServer() => singleton.connectToServer();
+  Stream<String> incomingMessages() => singleton.incomingMessages();
 }

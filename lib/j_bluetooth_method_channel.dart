@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:j_bluetooth/models/bluetooth_adapter_state.dart';
+import 'package:j_bluetooth/models/bluetooth_connection_state.dart';
 import 'package:j_bluetooth/models/jafra_bluetooth_device.dart';
 
 import 'j_bluetooth_platform_interface.dart';
@@ -20,12 +21,18 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
   late StreamController<JafraBluetoothDevice> _bluetoothDeviceController;
   late StreamSubscription<JafraBluetoothDevice> _bluetoothDeviceSubscription;
 
-  static const _incomingChannel = EventChannel('j_bluetooth/incoming');
+  late StreamController<String> _incomingMessagesController;
   StreamSubscription<dynamic>? _incomingSubscription;
 
-  static const EventChannel _connectionChannel =
-      EventChannel('j_bluetooth/connection_state');
+  late StreamController<BluetoothConnectionState>
+      _bluetoothConnectionController;
   StreamSubscription<dynamic>? _connectionSubscription;
+
+  static const _incomingChannel = EventChannel(
+      '${_BluetoothKeys.channelName}/${_BluetoothKeys.inComingChannelName}');
+
+  static const EventChannel _connectionChannel = EventChannel(
+      '${_BluetoothKeys.channelName}/${_BluetoothKeys.connectionStateChannelName}');
 
   MethodChannelJBluetooth() {
     _bluetoothAdapterStateController = StreamController(
@@ -44,6 +51,18 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
     _bluetoothDeviceController = StreamController(
       onCancel: () {
         _bluetoothDeviceSubscription.cancel();
+      },
+    );
+
+    _bluetoothConnectionController = StreamController(
+      onCancel: () {
+        _connectionSubscription?.cancel();
+      },
+    );
+
+    _incomingMessagesController = StreamController(
+      onCancel: () {
+        _incomingSubscription?.cancel();
       },
     );
 
@@ -78,10 +97,23 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
           onDone: _bluetoothDeviceController.close,
         );
 
-    _incomingSubscription =
-        _incomingChannel.receiveBroadcastStream().listen((data) {
-      log("Received from Bluetooth: $data");
-    });
+    _incomingSubscription = _incomingChannel
+        .receiveBroadcastStream()
+        .map((event) => event.toString())
+        .listen(
+          _incomingMessagesController.add,
+          onError: _incomingMessagesController.addError,
+          onDone: _incomingMessagesController.close,
+        );
+
+    _connectionSubscription = _connectionChannel
+        .receiveBroadcastStream()
+        .map((event) => BluetoothConnectionState.fromString(event))
+        .listen(
+          _bluetoothConnectionController.add,
+          onError: _bluetoothConnectionController.addError,
+          onDone: _bluetoothConnectionController.close,
+        );
   }
 
   @override
@@ -162,9 +194,10 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
     return _bluetoothIsDiscoveringController.stream;
   }
 
+  @override
   Future<void> sendMessage(String message) async {
     try {
-      await methodChannel.invokeMethod('sendMessage', {
+      await methodChannel.invokeMethod(_BluetoothKeys.sendMessage, {
         'message': message,
       });
     } on PlatformException catch (e) {
@@ -172,19 +205,21 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
     }
   }
 
-  void listenForConnectionState() {
-    _connectionSubscription =
-        _connectionChannel.receiveBroadcastStream().listen((state) {
-      if (state == "connected") {
-        log("Bluetooth connection established");
-        // Proceed to send/receive messages
-      } else if (state == "disconnected") {
-        log("Bluetooth connection lost");
-      }
-    }, onError: (error) {
-      log("Connection error: $error");
-    });
+  @override
+  Future<void> startServer() async =>
+      await methodChannel.invokeMethod(_BluetoothKeys.startServer);
+
+  @override
+  Stream<BluetoothConnectionState> connectionState() {
+    return _bluetoothConnectionController.stream;
   }
+
+  @override
+  Future<void> connectToServer() async =>
+      await methodChannel.invokeMethod(_BluetoothKeys.connectToServer);
+
+  @override
+  Stream<String> incomingMessages() => _incomingMessagesController.stream;
 }
 
 abstract class _BluetoothKeys {
@@ -192,6 +227,9 @@ abstract class _BluetoothKeys {
   static const String discoveryChannelName = 'discovery';
   static const String adapterStateChannelName = 'adapter_state';
   static const String isDiscoveringChannelName = 'is_discovering';
+  static const String connectionStateChannelName = 'connection_state';
+  static const String inComingChannelName = 'incoming';
+
   static const String isAvailable = 'isAvailable';
   // static const String isOn = 'isOn';
   static const String isEnabled = 'isEnabled';
@@ -201,4 +239,8 @@ abstract class _BluetoothKeys {
   static const String getName = 'getName';
   static const String startDiscovery = 'startDiscovery';
   static const String stopDiscovery = 'stopDiscovery';
+  static const String startServer = 'startServer';
+  static const String connectToServer = 'connectToServer';
+  static const String pairDevice = 'pairDevice';
+  static const String sendMessage = 'sendMessage';
 }

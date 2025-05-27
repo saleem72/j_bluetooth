@@ -46,6 +46,8 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
     const val discoveryChannelName = "discovery"
     const val adapterStateChannelName = "adapter_state"
     const val isDiscoveringChannelName = "is_discovering"
+    const val connectionStateChannelName = "connection_state"
+    const val inComingChannelName = "incoming"
 
     const val isAvailable = "isAvailable"
     const val isOn = "isOn"
@@ -56,6 +58,10 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
     const val getName = "getName"
     const val startDiscovery = "startDiscovery"
     const val stopDiscovery = "stopDiscovery"
+    const val startServer = "startServer"
+    const val connectToServer = "connectToServer"
+    const val pairDevice = "pairDevice"
+    const val sendMessage = "sendMessage"
     var instance: JBluetoothPlugin? = null
 //    const val uuidString = "00001101-0000-1000-8000-00805F9B34FB"
 
@@ -67,14 +73,18 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
   private var activity: Activity? = null
 
   private lateinit var channel: MethodChannel
-  private lateinit var discoveryChannel: EventChannel
 
+  private lateinit var discoveryChannel: EventChannel
   private lateinit var adapterStateChannel: EventChannel
   private lateinit var isDiscoveringChannel: EventChannel
+  private lateinit var connectionStateChannel: EventChannel
+  private lateinit var incomingChannel: EventChannel
 
   private lateinit var bluetoothDiscoveryHelper: BluetoothDiscoveryHelper
   private lateinit var adapterStateHandler: BluetoothStateStreamHandler
   private lateinit var bluetoothIsDiscoveringStreamHandler: BluetoothIsDiscoveringStreamHandler
+  private var connectionHandler: BluetoothConnectionHandler? = null
+  private lateinit var connectionStateStreamHandler: ConnectionStateStreamHandler
 
   private var pairingHelper: BluetoothPairingHelper? = null
 
@@ -82,14 +92,10 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
   private var pendingOnDenied: ((String) -> Unit)? = null
 
   private var bluetoothSocket: BluetoothSocket? = null
-  private var connectionHandler: BluetoothConnectionHandler? = null
   private lateinit var messenger: FlutterPlugin.FlutterPluginBinding
 
-  private lateinit var connectionStateChannel: EventChannel
-  private lateinit var connectionStateStreamHandler: ConnectionStateStreamHandler
 
   private var incomingSink: EventChannel.EventSink? = null
-  private lateinit var incomingChannel: EventChannel
 
 
   override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
@@ -133,13 +139,13 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
 
     connectionStateChannel = EventChannel(
       flutterPluginBinding.binaryMessenger,
-      "$channelName/connection_state"
+      "$channelName/$connectionStateChannelName"
     )
 
     connectionStateStreamHandler = ConnectionStateStreamHandler()
     connectionStateChannel.setStreamHandler(connectionStateStreamHandler)
 
-     incomingChannel = EventChannel(flutterPluginBinding.binaryMessenger, "j_bluetooth/incoming")
+     incomingChannel = EventChannel(flutterPluginBinding.binaryMessenger, "$channelName/$inComingChannelName")
     incomingChannel.setStreamHandler(object : EventChannel.StreamHandler {
       override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
         incomingSink = events
@@ -229,7 +235,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
         bluetoothDiscoveryHelper.stopDiscovery()
       }
 
-      "pairDevice" -> {
+      pairDevice -> {
         val address = call.argument<String>("address")
         if (address == null) {
           result.error("INVALID_ARGUMENT", "Device address is null", null)
@@ -258,7 +264,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
         })
       }
 
-      "startServer" -> {
+      startServer -> {
         val server = BluetoothServer(bluetoothAdapter)
         server.startServer(
           onConnected = { socket ->
@@ -278,7 +284,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
         result.success("server_started")
       }
 
-      "connectToServer" -> {
+      connectToServer -> {
         val address = call.argument<String>("address")
         if (address == null) {
           result.error("INVALID_ARGUMENT", "Device address is null", null)
@@ -305,7 +311,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
         result.success("connecting")
       }
 
-      "sendMessage" -> {
+      sendMessage -> {
         val message = call.argument<String>("message")
         connectionHandler?.write(message ?: "")
       }
