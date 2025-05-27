@@ -15,13 +15,19 @@ fun BluetoothDevice.toJafraBluetoothDevice(rssi: Short?): JBluetoothDevice {
     val deviceClass = this.bluetoothClass.deviceClass
     val majorDeviceClass = bluetoothClass.majorDeviceClass
     val minorDeviceClass = getMinorDeviceClass(deviceClass)
-    Log.d("JBluetoothPlugin", "Device: $deviceClass")
+    val bond = when (bondState) {
+        BluetoothDevice.BOND_NONE -> "Not Bonded" // Device is not paired.
+        BluetoothDevice.BOND_BONDING -> "Bonding" // Pairing is in progress.
+        BluetoothDevice.BOND_BONDED -> "Bonded" // Device is paired.
+        else -> "Unknown Bond State" // In case of unexpected state.
+    }
     return JBluetoothDevice(
         name = name ?: "No Name",
         address = address,
         deviceClass = deviceClass,
         majorDeviceClass = majorDeviceClass,
         minorDeviceClass = minorDeviceClass,
+
         rssi = rssi?.toInt() ?: 0
     )
 }

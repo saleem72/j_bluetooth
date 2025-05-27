@@ -262,7 +262,11 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
             // Save socket and start I/O stream handling
             Log.d(TAG, "Server accepted connection")
             bluetoothSocket = socket
-            connectionHandler = BluetoothConnection(socket, connectionStateStreamHandler, incomingMessagesStreamHandler)
+            connectionHandler = BluetoothConnection(
+              socket,
+              connectionStateStreamHandler,
+              incomingMessagesStreamHandler
+            )
             connectionHandler?.start()
             connectionStateStreamHandler?.notifyConnected()
           },
@@ -289,7 +293,11 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
             Log.d(TAG, "Client connected to server")
             // Save socket and start I/O stream handling
             bluetoothSocket = socket
-            connectionHandler = BluetoothConnection(socket,  connectionStateStreamHandler, incomingMessagesStreamHandler)
+            connectionHandler = BluetoothConnection(
+              socket,
+              connectionStateStreamHandler,
+              incomingMessagesStreamHandler
+            )
             connectionHandler?.start()
             connectionStateStreamHandler?.notifyConnected()
           },

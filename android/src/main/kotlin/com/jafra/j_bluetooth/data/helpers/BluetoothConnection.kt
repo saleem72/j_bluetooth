@@ -5,6 +5,10 @@ import com.jafra.j_bluetooth.JBluetoothPlugin
 import com.jafra.j_bluetooth.data.streams.ConnectionStateStreamHandler
 import com.jafra.j_bluetooth.data.streams.IncomingMessagesStreamHandler
 import io.flutter.Log
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
@@ -24,30 +28,38 @@ class BluetoothConnection(
         outputStream = socket.outputStream
         isRunning = true
 
-        Thread {
+        CoroutineScope(Dispatchers.IO).launch {
             val buffer = ByteArray(1024)
             while (isRunning) {
                 try {
                     val bytesRead = inputStream?.read(buffer) ?: -1
                     if (bytesRead == -1) {
                         Log.d("BluetoothConnection", "Connection lost (stream closed)")
-                        connectionStateStreamHandler?.notifyDisconnected()
+                        withContext(Dispatchers.Main) {
+                            connectionStateStreamHandler?.notifyDisconnected()
+                        }
+
                         break
                     }
                     if (bytesRead > 0) {
                         val received = String(buffer, 0, bytesRead)
                         Log.d("BluetoothConnection", "Received: $received")
-                        // TODO("Fix this")
-                        incomingMessagesStreamHandler?.sendIncomingMessage(received)
+                        withContext(Dispatchers.Main) {
+                            incomingMessagesStreamHandler?.sendIncomingMessage(received)
+                        }
+
                     }
                 } catch (e: IOException) {
                     Log.e("BluetoothConnection", "Read failed", e)
-                    connectionStateStreamHandler?.notifyDisconnected()
+                    withContext(Dispatchers.Main) {
+                        connectionStateStreamHandler?.notifyDisconnected()
+                    }
+
                     break
                 }
             }
             isRunning = false
-        }.start()
+        }
     }
 
     fun write(data: String) {

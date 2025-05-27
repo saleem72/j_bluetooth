@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:j_bluetooth/models/bluetooth_adapter_state.dart';
 import 'package:j_bluetooth/models/bluetooth_connection_state.dart';
+import 'package:j_bluetooth/models/connected_device.dart';
 import 'package:j_bluetooth/models/jafra_bluetooth_device.dart';
 
 import 'j_bluetooth_platform_interface.dart';
@@ -23,6 +24,8 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
 
   late StreamController<String> _incomingMessagesController;
   StreamSubscription<dynamic>? _incomingSubscription;
+  late StreamController<ConnectedDevice> _aclController;
+  StreamSubscription<dynamic>? _aclSubscription;
 
   late StreamController<BluetoothConnectionState>
       _bluetoothConnectionController;
@@ -30,6 +33,9 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
 
   static const _incomingChannel = EventChannel(
       '${_BluetoothKeys.channelName}/${_BluetoothKeys.inComingChannelName}');
+
+  static const _aclChannel = EventChannel(
+      '${_BluetoothKeys.channelName}/${_BluetoothKeys.aclChannelName}');
 
   static const EventChannel _connectionChannel = EventChannel(
       '${_BluetoothKeys.channelName}/${_BluetoothKeys.connectionStateChannelName}');
@@ -66,6 +72,12 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
       },
     );
 
+    _aclController = StreamController(
+      onCancel: () {
+        _aclSubscription?.cancel();
+      },
+    );
+
     _bluetoothAdapterStateSubscription = _adapterStateChannel
         .receiveBroadcastStream()
         .map((event) => BluetoothAdapterState.fromString(event as String))
@@ -97,14 +109,24 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
           onDone: _bluetoothDeviceController.close,
         );
 
-    _incomingSubscription = _incomingChannel
-        .receiveBroadcastStream()
-        .map((event) => event.toString())
-        .listen(
-          _incomingMessagesController.add,
-          onError: _incomingMessagesController.addError,
-          onDone: _incomingMessagesController.close,
-        );
+    _incomingSubscription =
+        _incomingChannel.receiveBroadcastStream().map((event) {
+      log(event.toString(), name: '_incomingChannel');
+      return event.toString();
+    }).listen(
+      _incomingMessagesController.add,
+      onError: _incomingMessagesController.addError,
+      onDone: _incomingMessagesController.close,
+    );
+
+    _aclSubscription = _aclChannel.receiveBroadcastStream().map((event) {
+      log(event.toString(), name: '_aclChannel');
+      return ConnectedDevice.fromMap(event);
+    }).listen(
+      _aclController.add,
+      onError: _aclController.addError,
+      onDone: _aclController.close,
+    );
 
     _connectionSubscription = _connectionChannel
         .receiveBroadcastStream()
@@ -215,8 +237,12 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
   }
 
   @override
-  Future<void> connectToServer() async =>
-      await methodChannel.invokeMethod(_BluetoothKeys.connectToServer);
+  Future<void> connectToServer(JafraBluetoothDevice device) async {
+    final address = device.address;
+    await methodChannel.invokeMethod(_BluetoothKeys.connectToServer, {
+      'address': address,
+    });
+  }
 
   @override
   Stream<String> incomingMessages() => _incomingMessagesController.stream;
@@ -229,6 +255,11 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
       return devices;
     }
     return [];
+  }
+
+  @override
+  Stream<ConnectedDevice> connectedDevice() {
+    return _aclController.stream;
   }
 }
 
@@ -255,4 +286,5 @@ abstract class _BluetoothKeys {
   static const String sendMessage = 'sendMessage';
 
   static const String pairedDevices = 'pairedDevices';
+  static const String aclChannelName = 'acl_connection';
 }

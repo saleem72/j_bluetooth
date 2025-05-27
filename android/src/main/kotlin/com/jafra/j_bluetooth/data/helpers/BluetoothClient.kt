@@ -4,21 +4,31 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
 import com.jafra.j_bluetooth.domain.constants.BluetoothConstants
 import io.flutter.Log
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.IOException
 
 class BluetoothClient(private val device: BluetoothDevice) {
 
     fun connect(onConnected: (BluetoothSocket) -> Unit, onError: (Exception) -> Unit) {
-        Thread {
+        CoroutineScope(Dispatchers.IO).launch {
             try {
                 val socket = device.createRfcommSocketToServiceRecord(BluetoothConstants.uuid)
                 socket.connect()
                 Log.d("BluetoothClient", "Connected to server")
-                onConnected(socket)
+                withContext(Dispatchers.Main) {
+                    onConnected(socket)
+                }
+
             } catch (e: IOException) {
                 Log.e("BluetoothClient", "Connection failed: ${e.message}")
-                onError(e)
+                withContext(Dispatchers.Main) {
+                    onError(e)
+                }
+
             }
-        }.start()
+        }
     }
 }

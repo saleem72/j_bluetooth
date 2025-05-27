@@ -1,5 +1,6 @@
 import 'package:j_bluetooth/models/bluetooth_adapter_state.dart';
 import 'package:j_bluetooth/models/bluetooth_connection_state.dart';
+import 'package:j_bluetooth/models/connected_device.dart';
 import 'package:j_bluetooth/models/jafra_bluetooth_device.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
@@ -66,9 +67,11 @@ abstract class JBluetoothPlatform extends PlatformInterface {
 
   Future<void> sendMessage(String message);
 
-  Future<void> connectToServer();
+  Future<void> connectToServer(JafraBluetoothDevice device);
 
   Stream<String> incomingMessages();
 
   Future<List<JafraBluetoothDevice>> pairedDevices();
+
+  Stream<ConnectedDevice> connectedDevice();
 }

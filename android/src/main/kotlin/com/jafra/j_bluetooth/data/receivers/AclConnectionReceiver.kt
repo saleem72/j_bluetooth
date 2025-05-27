@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
+import android.util.Log
 import io.flutter.plugin.common.EventChannel
 
 /**
@@ -28,6 +29,7 @@ class AclConnectionReceiver(private val context: Context) : EventChannel.StreamH
     }
 
     private fun registerReceiver() {
+        Log.d("JBluetoothPlugin", "register AclConnectionReceiver")
         val filter = IntentFilter().apply {
             addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
             addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
@@ -38,6 +40,7 @@ class AclConnectionReceiver(private val context: Context) : EventChannel.StreamH
                 if (intent == null) return
 
                 val action = intent.action
+                Log.d("JBluetoothPlugin", "onReceive: $action")
                 val device: BluetoothDevice? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     intent.getParcelableExtra(
                         BluetoothDevice.EXTRA_DEVICE,
