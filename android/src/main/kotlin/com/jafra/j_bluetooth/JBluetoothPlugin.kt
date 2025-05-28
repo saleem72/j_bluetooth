@@ -165,6 +165,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
 
       openSettings -> {
         val intent = Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         ContextCompat.startActivity(
           context,
           intent,
