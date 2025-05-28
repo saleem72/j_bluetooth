@@ -400,7 +400,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
     // All required permissions are already granted or not needed
     onGranted()
   }
-  
+
   private fun createAclConnectionChannel(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     aclConnectionReceiver = AclConnectionReceiver(context)
     aclConnectionChannel =
