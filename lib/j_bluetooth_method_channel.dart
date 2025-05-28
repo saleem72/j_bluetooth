@@ -12,105 +12,111 @@ import 'j_bluetooth_platform_interface.dart';
 
 /// An implementation of [JBluetoothPlatform] that uses method channels.
 class MethodChannelJBluetooth extends JBluetoothPlatform {
-  late StreamSubscription<BluetoothAdapterState>
-      _bluetoothAdapterStateSubscription;
-  late StreamController<BluetoothAdapterState> _bluetoothAdapterStateController;
+  /// The method channel used to interact with the native platform.
+  @visibleForTesting
+  final methodChannel = const MethodChannel(_BluetoothKeys.channelName);
 
-  late StreamSubscription<bool> _bluetoothIsDiscoveringSubscription;
-  late StreamController<bool> _bluetoothIsDiscoveringController;
+  final EventChannel _adapterStateChannel = const EventChannel(
+      '${_BluetoothKeys.channelName}/${_BluetoothKeys.adapterStateChannelName}');
+  late StreamSubscription<BluetoothAdapterState> _adapterStateSubscription;
+  late StreamController<BluetoothAdapterState> _adapterStateController;
 
-  late StreamController<JafraBluetoothDevice> _bluetoothDeviceController;
-  late StreamSubscription<JafraBluetoothDevice> _bluetoothDeviceSubscription;
+  final EventChannel _discoveryStateChannel = const EventChannel(
+      '${_BluetoothKeys.channelName}/${_BluetoothKeys.isDiscoveringChannelName}');
+  late StreamSubscription<bool> _discoveryStateSubscription;
+  late StreamController<bool> _discoveryStateController;
 
-  late StreamController<String> _incomingMessagesController;
-  StreamSubscription<dynamic>? _incomingSubscription;
-  late StreamController<ConnectedDevice> _aclController;
-  StreamSubscription<dynamic>? _aclSubscription;
+  final EventChannel _deviceFoundChannel = const EventChannel(
+      '${_BluetoothKeys.channelName}/${_BluetoothKeys.discoveryChannelName}');
+  late StreamController<JafraBluetoothDevice> _deviceFoundController;
+  late StreamSubscription<JafraBluetoothDevice> _deviceFoundSubscription;
 
-  late StreamController<BluetoothConnectionState>
-      _bluetoothConnectionController;
-  StreamSubscription<dynamic>? _connectionSubscription;
-
-  static const _incomingChannel = EventChannel(
+  static const _incomingMessagesChannel = EventChannel(
       '${_BluetoothKeys.channelName}/${_BluetoothKeys.inComingChannelName}');
+  late StreamController<String> _incomingMessagesController;
+  StreamSubscription<dynamic>? _incomingMessagesSubscription;
 
-  static const _aclChannel = EventChannel(
+  static const _aclConnectionChannel = EventChannel(
       '${_BluetoothKeys.channelName}/${_BluetoothKeys.aclChannelName}');
+  late StreamController<ConnectedDevice> _aclConnectionController;
+  StreamSubscription<dynamic>? _aclConnectionSubscription;
 
-  static const EventChannel _connectionChannel = EventChannel(
+  static const EventChannel _connectionStateChannel = EventChannel(
       '${_BluetoothKeys.channelName}/${_BluetoothKeys.connectionStateChannelName}');
+  late StreamController<BluetoothConnectionState> _connectionStateController;
+  StreamSubscription<dynamic>? _connectionStateSubscription;
 
   MethodChannelJBluetooth() {
-    _bluetoothAdapterStateController = StreamController(
+    _adapterStateController = StreamController(
       onCancel: () {
         // `cancelDiscovery` happens automatically by platform code when closing event sink
-        _bluetoothAdapterStateSubscription.cancel();
+        _adapterStateSubscription.cancel();
       },
     );
-    _bluetoothIsDiscoveringController = StreamController(
+    _discoveryStateController = StreamController(
       onCancel: () {
         // `cancelDiscovery` happens automatically by platform code when closing event sink
-        _bluetoothIsDiscoveringSubscription.cancel();
+        _discoveryStateSubscription.cancel();
       },
     );
 
-    _bluetoothDeviceController = StreamController(
+    _deviceFoundController = StreamController(
       onCancel: () {
-        _bluetoothDeviceSubscription.cancel();
+        _deviceFoundSubscription.cancel();
       },
     );
 
-    _bluetoothConnectionController = StreamController(
+    _connectionStateController = StreamController(
       onCancel: () {
-        _connectionSubscription?.cancel();
+        _connectionStateSubscription?.cancel();
       },
     );
 
     _incomingMessagesController = StreamController(
       onCancel: () {
-        _incomingSubscription?.cancel();
+        _incomingMessagesSubscription?.cancel();
       },
     );
 
-    _aclController = StreamController(
+    _aclConnectionController = StreamController(
       onCancel: () {
-        _aclSubscription?.cancel();
+        _aclConnectionSubscription?.cancel();
       },
     );
 
-    _bluetoothAdapterStateSubscription = _adapterStateChannel
+    _adapterStateSubscription = _adapterStateChannel
         .receiveBroadcastStream()
         .map((event) => BluetoothAdapterState.fromString(event as String))
         .listen(
-          _bluetoothAdapterStateController.add,
-          onError: _bluetoothAdapterStateController.addError,
-          onDone: _bluetoothAdapterStateController.close,
+          _adapterStateController.add,
+          onError: _adapterStateController.addError,
+          onDone: _adapterStateController.close,
         );
 
-    _bluetoothIsDiscoveringSubscription =
-        _isDiscoveringChannel.receiveBroadcastStream().map((event) {
+    _discoveryStateSubscription =
+        _discoveryStateChannel.receiveBroadcastStream().map((event) {
       log(event.toString(), name: "MethodChannelJafraBluetooth");
       if (event == true) {
         return true;
       }
       return false;
     }).listen(
-      _bluetoothIsDiscoveringController.add,
-      onError: _bluetoothIsDiscoveringController.addError,
-      onDone: _bluetoothIsDiscoveringController.close,
+      _discoveryStateController.add,
+      onError: _discoveryStateController.addError,
+      onDone: _discoveryStateController.close,
     );
 
-    _bluetoothDeviceSubscription = _devicesChannel
+    _deviceFoundSubscription = _deviceFoundChannel
         .receiveBroadcastStream()
         .map((event) => JafraBluetoothDevice.fromMap(event))
         .listen(
-          _bluetoothDeviceController.add,
-          onError: _bluetoothDeviceController.addError,
-          onDone: _bluetoothDeviceController.close,
+          _deviceFoundController.add,
+          onError: _deviceFoundController.addError,
+          onDone: _deviceFoundController.close,
         );
 
-    _incomingSubscription =
-        _incomingChannel.receiveBroadcastStream().map((event) {
+    _incomingMessagesSubscription =
+        _incomingMessagesChannel.receiveBroadcastStream().map((event) {
       log(event.toString(), name: '_incomingChannel');
       return event.toString();
     }).listen(
@@ -119,49 +125,50 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
       onDone: _incomingMessagesController.close,
     );
 
-    _aclSubscription = _aclChannel.receiveBroadcastStream().map((event) {
+    _aclConnectionSubscription =
+        _aclConnectionChannel.receiveBroadcastStream().map((event) {
       log(event.toString(), name: '_aclChannel');
       return ConnectedDevice.fromMap(event);
     }).listen(
-      _aclController.add,
-      onError: _aclController.addError,
-      onDone: _aclController.close,
+      _aclConnectionController.add,
+      onError: _aclConnectionController.addError,
+      onDone: _aclConnectionController.close,
     );
 
-    _connectionSubscription = _connectionChannel
-        .receiveBroadcastStream()
-        .map((event) => BluetoothConnectionState.fromString(event))
-        .listen(
-          _bluetoothConnectionController.add,
-          onError: _bluetoothConnectionController.addError,
-          onDone: _bluetoothConnectionController.close,
-        );
+    _connectionStateSubscription =
+        _connectionStateChannel.receiveBroadcastStream().map((event) {
+      final aState = BluetoothConnectionState.fromString(event);
+      log(aState.toString(), name: 'connectionStateChannel');
+      return aState;
+    }).listen(
+      _connectionStateController.add,
+      onError: _connectionStateController.addError,
+      onDone: _connectionStateController.close,
+    );
   }
 
   @override
   Future<void> dispose() async {
     // await methodChannel.invokeMethod('dispose');
-    _bluetoothAdapterStateSubscription.cancel();
-    _bluetoothIsDiscoveringController.close();
+    _adapterStateSubscription.cancel();
+    _discoveryStateController.close();
 
-    _bluetoothIsDiscoveringSubscription.cancel();
-    _bluetoothAdapterStateController.close();
-    _incomingSubscription?.cancel();
-    _connectionSubscription?.cancel();
+    _discoveryStateSubscription.cancel();
+    _discoveryStateController.close();
+
+    _deviceFoundSubscription.cancel();
+    _deviceFoundController.close();
+
+    _incomingMessagesSubscription?.cancel();
+    _incomingMessagesController.close();
+
+    _aclConnectionSubscription?.cancel();
+    _aclConnectionController.close();
+
+    _connectionStateSubscription?.cancel();
+    _connectionStateController.close();
   }
 
-  /// The method channel used to interact with the native platform.
-  @visibleForTesting
-  final methodChannel = const MethodChannel(_BluetoothKeys.channelName);
-
-  final EventChannel _adapterStateChannel = const EventChannel(
-      '${_BluetoothKeys.channelName}/${_BluetoothKeys.adapterStateChannelName}');
-
-  final EventChannel _isDiscoveringChannel = const EventChannel(
-      '${_BluetoothKeys.channelName}/${_BluetoothKeys.isDiscoveringChannelName}');
-
-  final EventChannel _devicesChannel = const EventChannel(
-      '${_BluetoothKeys.channelName}/${_BluetoothKeys.discoveryChannelName}');
   @override
   Future<String?> get adapterAddress async =>
       await methodChannel.invokeMethod<String>(_BluetoothKeys.getAddress);
@@ -195,12 +202,12 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
 
   /// Starts discovery and provides stream of `BluetoothDiscoveryResult`s.
   Stream<BluetoothAdapterState> discoveredDevices() {
-    return _bluetoothAdapterStateController.stream;
+    return _adapterStateController.stream;
   }
 
   @override
   Stream<JafraBluetoothDevice> onDevice() {
-    return _bluetoothDeviceController.stream;
+    return _deviceFoundController.stream;
   }
 
   @override
@@ -213,7 +220,7 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
 
   @override
   Stream<bool> isDiscovering() {
-    return _bluetoothIsDiscoveringController.stream;
+    return _discoveryStateController.stream;
   }
 
   @override
@@ -233,7 +240,7 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
 
   @override
   Stream<BluetoothConnectionState> connectionState() {
-    return _bluetoothConnectionController.stream;
+    return _connectionStateController.stream;
   }
 
   @override
@@ -259,7 +266,7 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
 
   @override
   Stream<ConnectedDevice> connectedDevice() {
-    return _aclController.stream;
+    return _aclConnectionController.stream;
   }
 }
 
@@ -282,7 +289,7 @@ abstract class _BluetoothKeys {
   static const String stopDiscovery = 'stopDiscovery';
   static const String startServer = 'startServer';
   static const String connectToServer = 'connectToServer';
-  static const String pairDevice = 'pairDevice';
+  // static const String pairDevice = 'pairDevice';
   static const String sendMessage = 'sendMessage';
 
   static const String pairedDevices = 'pairedDevices';
