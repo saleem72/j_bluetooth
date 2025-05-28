@@ -24,6 +24,7 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final myController = TextEditingController();
+  final jafraBluetooth = JBluetooth();
   StreamSubscription<String>? _incomingMessagesSubscription;
   List<ChatMessage> messages = [];
 
@@ -40,7 +41,6 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void initMessages() {
-    final jafraBluetooth = JBluetooth();
     _incomingMessagesSubscription =
         jafraBluetooth.incomingMessages().listen((event) {
       final message = ChatMessage(
@@ -63,7 +63,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Chat screen'),
+        title: Text(widget.device.name),
       ),
       body: Stack(
         children: <Widget>[
@@ -138,7 +138,16 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildSendButton(BuildContext context) {
     return FloatingActionButton(
-      onPressed: () {},
+      onPressed: () {
+        final message = myController.text;
+        final chatMessage = ChatMessage(
+          message: message,
+          isFromLocalUser: true,
+        );
+        jafraBluetooth.sendMessage(message);
+        messages.add(chatMessage);
+        setState(() {});
+      },
       elevation: 0,
       backgroundColor: Colors.green,
       child: const Icon(

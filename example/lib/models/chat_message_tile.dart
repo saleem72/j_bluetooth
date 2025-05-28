@@ -18,11 +18,11 @@ class ChatMessageTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Align(
         alignment:
-            (message.isFromLocalUser ? Alignment.topLeft : Alignment.topRight),
+            !message.isFromLocalUser ? Alignment.topLeft : Alignment.topRight,
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            color: message.isFromLocalUser
+            color: !message.isFromLocalUser
                 ? Colors.grey.shade200
                 : Colors.grey.shade300,
           ),

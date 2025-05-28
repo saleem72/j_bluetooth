@@ -12,14 +12,15 @@ import java.io.IOException
 
 class BluetoothClient(private val device: BluetoothDevice) {
 
-    fun connect(onConnected: (BluetoothSocket) -> Unit, onError: (Exception) -> Unit) {
+    fun connect(onConnected: (BluetoothSocket, BluetoothDevice) -> Unit, onError: (Exception) -> Unit) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val socket = device.createRfcommSocketToServiceRecord(BluetoothConstants.uuid)
                 socket.connect()
                 Log.d("BluetoothClient", "Connected to server")
+                val remoteDevice = socket.remoteDevice
                 withContext(Dispatchers.Main) {
-                    onConnected(socket)
+                    onConnected(socket, remoteDevice)
                 }
 
             } catch (e: IOException) {

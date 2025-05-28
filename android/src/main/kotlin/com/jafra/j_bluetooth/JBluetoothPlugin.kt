@@ -259,7 +259,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
       startServer -> {
         val server = BluetoothServer(bluetoothAdapter)
         server.startServer(
-          onConnected = { socket ->
+          onConnected = { socket, remoteDevice ->
             // Save socket and start I/O stream handling
             Log.d(TAG, "Server accepted connection")
             bluetoothSocket = socket
@@ -269,7 +269,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
               incomingMessagesStreamHandler
             )
             connectionHandler?.start()
-            connectionStateStreamHandler?.notifyConnected()
+            connectionStateStreamHandler?.notifyConnected(remoteDevice)
           },
           onError = { e ->
             Log.e(TAG, "Server error: ${e.message}")
@@ -291,7 +291,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
         val client = BluetoothClient(device)
 
         client.connect(
-          onConnected = { socket ->
+          onConnected = { socket, remoteDevice ->
             Log.d(TAG, "Client connected to server")
             // Save socket and start I/O stream handling
             bluetoothSocket = socket
@@ -301,7 +301,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
               incomingMessagesStreamHandler
             )
             connectionHandler?.start()
-            connectionStateStreamHandler?.notifyConnected()
+            connectionStateStreamHandler?.notifyConnected(remoteDevice)
           },
           onError = { e ->
             Log.e(TAG, "Client connection failed: ${e.message}")

@@ -135,16 +135,14 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
       onDone: _aclConnectionController.close,
     );
 
-    _connectionStateSubscription =
-        _connectionStateChannel.receiveBroadcastStream().map((event) {
-      final aState = BluetoothConnectionState.fromString(event);
-      log(aState.toString(), name: 'connectionStateChannel');
-      return aState;
-    }).listen(
-      _connectionStateController.add,
-      onError: _connectionStateController.addError,
-      onDone: _connectionStateController.close,
-    );
+    _connectionStateSubscription = _connectionStateChannel
+        .receiveBroadcastStream()
+        .map((event) => BluetoothConnectionState.fromMap(event))
+        .listen(
+          _connectionStateController.add,
+          onError: _connectionStateController.addError,
+          onDone: _connectionStateController.close,
+        );
   }
 
   @override

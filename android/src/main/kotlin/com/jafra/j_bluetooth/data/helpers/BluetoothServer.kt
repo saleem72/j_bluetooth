@@ -1,6 +1,7 @@
 package com.jafra.j_bluetooth.data.helpers
 
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothServerSocket
 import android.bluetooth.BluetoothSocket
 import com.jafra.j_bluetooth.domain.constants.BluetoothConstants
@@ -19,7 +20,7 @@ class BluetoothServer(private val adapter: BluetoothAdapter) {
     private var serverSocket: BluetoothServerSocket? = null
 
     fun startServer(
-        onConnected: (BluetoothSocket) -> Unit,
+        onConnected: (BluetoothSocket, BluetoothDevice) -> Unit,
         onError: (Exception) -> Unit
     ) {
         var serverSocket: android.bluetooth.BluetoothServerSocket? = null // Declare outside try block
@@ -34,8 +35,9 @@ class BluetoothServer(private val adapter: BluetoothAdapter) {
                 Log.d("BluetoothServer", "Client connected")
 
                 socket?.let {
+                    val remoteDevice = it.remoteDevice
                     withContext(Dispatchers.Main) {
-                        onConnected(it) // Execute onConnected on UI thread
+                        onConnected(it, remoteDevice) // Execute onConnected on UI thread
                     }
                     serverSocket?.close()
                 }

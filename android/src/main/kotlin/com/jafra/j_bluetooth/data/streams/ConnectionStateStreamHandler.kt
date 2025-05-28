@@ -1,5 +1,6 @@
 package com.jafra.j_bluetooth.data.streams
 
+import android.bluetooth.BluetoothDevice
 import io.flutter.plugin.common.EventChannel
 
 class ConnectionStateStreamHandler : EventChannel.StreamHandler {
@@ -13,15 +14,27 @@ class ConnectionStateStreamHandler : EventChannel.StreamHandler {
         eventSink = null
     }
 
-    fun notifyConnected() {
-        eventSink?.success("connected")
+    fun notifyConnected(remoteDevice: BluetoothDevice) {
+        val data = mapOf(
+            "address" to remoteDevice.address,
+            "name" to remoteDevice.name,
+            "isConnected" to true
+        )
+        eventSink?.success(data)
     }
 
     fun notifyDisconnected() {
-        eventSink?.success("disconnected")
+        val data = mapOf(
+            "isConnected" to false
+        )
+        eventSink?.success(data)
     }
 
     fun notifyError(message: String) {
-        eventSink?.error("CONNECTION_ERROR", message, null)
+        val data = mapOf(
+            "isConnected" to false,
+            "error" to message
+        )
+        eventSink?.success(data)
     }
 }

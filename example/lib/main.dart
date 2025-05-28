@@ -7,6 +7,7 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 import 'package:j_bluetooth/j_bluetooth.dart';
+import 'package:j_bluetooth/models/bluetooth_connection_state.dart';
 import 'package:j_bluetooth_example/chat_screen.dart';
 
 void main() {
@@ -39,7 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final _jafraBluetoothPlugin = JBluetooth();
   StreamSubscription<BluetoothAdapterState>? _adapterStateSubscription;
   StreamSubscription<bool>? _isDiscoveringSubscription;
-  StreamSubscription<ConnectedDevice>? _connectedDeviceSubscription;
+  StreamSubscription<BluetoothConnectionState>? _connectionStateSubscription;
   StreamSubscription<JafraBluetoothDevice>? _devicesSubscription;
   String adapterName = 'Unknown';
   BluetoothAdapterState adapterState = BluetoothAdapterState.unknown;
@@ -60,7 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _devicesSubscription?.cancel();
     _adapterStateSubscription?.cancel();
     _jafraBluetoothPlugin.dispose();
-    _connectedDeviceSubscription?.cancel();
+    _connectionStateSubscription?.cancel();
     super.dispose();
   }
 
@@ -90,12 +91,15 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       });
 
-      _connectedDeviceSubscription =
-          _jafraBluetoothPlugin.connectedDevice().listen((device) {
-        log(device.address);
+      _connectionStateSubscription =
+          _jafraBluetoothPlugin.connectionState().listen((connectionState) {
+        log(connectionState.toString());
+        final device = connectionState.connectedDevice;
         connectedDevice = device;
         setState(() {});
-        _push(device);
+        if (device != null) {
+          _push(device);
+        }
       });
 
       _devicesSubscription = _jafraBluetoothPlugin.onDevice().listen((event) {
@@ -144,20 +148,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Plugin example app'),
-        actions: [
-          IconButton(
-            onPressed: () {
-              // {address: 90:CB:A3:7E:FA:D8, name: TECNO SPARK Go 2024, isConnected: true}
-              const device = ConnectedDevice(
-                address: "90:CB:A3:7E:FA:D8",
-                name: "TECNO SPARK Go 2024",
-                isConnected: true,
-              );
-              _push(device);
-            },
-            icon: const Icon(Icons.chat),
-          ),
-        ],
       ),
       body: Stack(
         children: [
