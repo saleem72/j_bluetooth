@@ -144,6 +144,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
     cleanDeviceFoundChannel()
     cleanAdapterStateChannel()
     cleanAclConnectionChannel()
+    closeConnection()
   }
 
 
@@ -272,8 +273,9 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
           },
           onError = { e ->
             Log.e(TAG, "Server error: ${e.message}")
-            connectionStateStreamHandler?.notifyDisconnected() // 👈 Added this
-            connectionStateStreamHandler?.notifyError(e.message ?: "Unknown Error") // 👈 Added this
+            connectionStateStreamHandler?.notifyDisconnected()
+            connectionStateStreamHandler?.notifyError(e.message ?: "Unknown Error")
+            closeConnection()
           }
         )
         result.success("server_started")
@@ -303,8 +305,9 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
           },
           onError = { e ->
             Log.e(TAG, "Client connection failed: ${e.message}")
-            connectionStateStreamHandler?.notifyDisconnected() // 👈 Added this
-            connectionStateStreamHandler?.notifyError(e.message ?: "Unknown Error") // 👈 Added this
+            connectionStateStreamHandler?.notifyDisconnected()
+            connectionStateStreamHandler?.notifyError(e.message ?: "Unknown Error")
+            closeConnection()
           }
         )
         result.success("connecting")
@@ -397,10 +400,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
     // All required permissions are already granted or not needed
     onGranted()
   }
-
-
-
-
+  
   private fun createAclConnectionChannel(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     aclConnectionReceiver = AclConnectionReceiver(context)
     aclConnectionChannel =
@@ -486,6 +486,11 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
     connectionStateChannel?.setStreamHandler(null)
     connectionStateChannel = null
     connectionStateStreamHandler = null
+  }
+
+  private fun closeConnection() {
+    bluetoothSocket?.close()
+    bluetoothSocket = null
   }
 
 }
