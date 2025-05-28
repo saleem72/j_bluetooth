@@ -53,9 +53,7 @@ abstract class JBluetoothPlatform extends PlatformInterface {
 
   Stream<bool> isDiscovering();
 
-  Future<void> openSettings() {
-    throw UnimplementedError('openSettings() has not been implemented.');
-  }
+  Future<void> openSettings();
 
   Future<bool> ensurePermissions() {
     throw UnimplementedError('ensurePermissions() has not been implemented.');

@@ -266,6 +266,11 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
   Stream<ConnectedDevice> connectedDevice() {
     return _aclConnectionController.stream;
   }
+
+  @override
+  Future<void> openSettings() async {
+    methodChannel.invokeMethod(_BluetoothKeys.openSettings);
+  }
 }
 
 abstract class _BluetoothKeys {
@@ -279,7 +284,7 @@ abstract class _BluetoothKeys {
   static const String isAvailable = 'isAvailable';
   // static const String isOn = 'isOn';
   static const String isEnabled = 'isEnabled';
-  // static const String openSettings = 'openSettings';
+  static const String openSettings = 'openSettings';
   static const String getState = 'getState';
   static const String getAddress = 'getAddress';
   static const String getName = 'getName';

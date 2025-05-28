@@ -49,4 +49,6 @@ class JBluetooth {
       singleton.pairedDevices();
 
   Stream<ConnectedDevice> connectedDevice() => singleton.connectedDevice();
+
+  Future<void> openSettings() => singleton.openSettings();
 }
