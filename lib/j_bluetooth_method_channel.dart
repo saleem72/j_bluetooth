@@ -47,38 +47,38 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
   StreamSubscription<dynamic>? _connectionStateSubscription;
 
   MethodChannelJBluetooth() {
-    _adapterStateController = StreamController(
+    _adapterStateController = StreamController.broadcast(
       onCancel: () {
         // `cancelDiscovery` happens automatically by platform code when closing event sink
         _adapterStateSubscription.cancel();
       },
     );
-    _discoveryStateController = StreamController(
+    _discoveryStateController = StreamController.broadcast(
       onCancel: () {
         // `cancelDiscovery` happens automatically by platform code when closing event sink
         _discoveryStateSubscription.cancel();
       },
     );
 
-    _deviceFoundController = StreamController(
+    _deviceFoundController = StreamController.broadcast(
       onCancel: () {
         _deviceFoundSubscription.cancel();
       },
     );
 
-    _connectionStateController = StreamController(
+    _connectionStateController = StreamController.broadcast(
       onCancel: () {
         _connectionStateSubscription?.cancel();
       },
     );
 
-    _incomingMessagesController = StreamController(
+    _incomingMessagesController = StreamController.broadcast(
       onCancel: () {
         _incomingMessagesSubscription?.cancel();
       },
     );
 
-    _aclConnectionController = StreamController(
+    _aclConnectionController = StreamController.broadcast(
       onCancel: () {
         _aclConnectionSubscription?.cancel();
       },
