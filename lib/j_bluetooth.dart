@@ -24,8 +24,8 @@ class JBluetooth {
 
   Future<void> dispose() => singleton.dispose();
 
-  Stream<JafraBluetoothDevice> discoveredDevices() {
-    return singleton.discoveredDevices();
+  Stream<BluetoothAdapterState> adapterState() {
+    return singleton.adapterState();
   }
 
   Future<void> startDiscover() async => singleton.startDiscover();

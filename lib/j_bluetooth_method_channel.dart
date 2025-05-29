@@ -292,8 +292,8 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
   @override
 
   /// Starts discovery and provides stream of `BluetoothDiscoveryResult`s.
-  Stream<JafraBluetoothDevice> discoveredDevices() {
-    return _deviceFoundController.stream;
+  Stream<BluetoothAdapterState> adapterState() {
+    return _adapterStateController.stream;
   }
 
   @override

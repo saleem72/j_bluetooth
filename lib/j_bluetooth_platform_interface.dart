@@ -48,7 +48,7 @@ abstract class JBluetoothPlatform extends PlatformInterface {
 
   Stream<JafraBluetoothDevice> onDevice();
 
-  Stream<JafraBluetoothDevice> discoveredDevices() {
+  Stream<BluetoothAdapterState> adapterState() {
     throw UnimplementedError('startDiscovery() has not been implemented.');
   }
 
