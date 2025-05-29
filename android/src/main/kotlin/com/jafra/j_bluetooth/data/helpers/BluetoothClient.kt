@@ -8,15 +8,22 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import java.io.IOException
 
 class BluetoothClient(private val device: BluetoothDevice) {
 
-    fun connect(onConnected: (BluetoothSocket, BluetoothDevice) -> Unit, onError: (Exception) -> Unit) {
+    fun connect(
+        timeoutMs: Long = 10000L,
+        onConnected: (BluetoothSocket, BluetoothDevice) -> Unit,
+        onError: (Exception) -> Unit
+    ) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val socket = device.createRfcommSocketToServiceRecord(BluetoothConstants.uuid)
-                socket.connect()
+                withTimeout(timeoutMs) {
+                    socket.connect()
+                }
                 Log.d("BluetoothClient", "Connected to server")
                 val remoteDevice = socket.remoteDevice
                 withContext(Dispatchers.Main) {

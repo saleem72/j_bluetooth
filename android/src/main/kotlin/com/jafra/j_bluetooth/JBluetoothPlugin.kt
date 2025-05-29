@@ -25,6 +25,7 @@ import com.jafra.j_bluetooth.data.mappers.toMap
 import com.jafra.j_bluetooth.data.receivers.BluetoothAdapterStateReceiver
 import com.jafra.j_bluetooth.data.receivers.AclConnectionReceiver
 import com.jafra.j_bluetooth.data.streams.ConnectionStateStreamHandler
+import com.jafra.j_bluetooth.data.streams.ErrorStreamHandler
 import com.jafra.j_bluetooth.data.streams.IncomingMessagesStreamHandler
 import io.flutter.Log
 
@@ -53,6 +54,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
     const val connectionStateChannelName = "connection_state"
     const val inComingChannelName = "incoming"
     const val aclChannelName = "acl_connection"
+    const val errorChannelName = "error"
 
     const val isAvailable = "isAvailable"
     const val isOn = "isOn"
@@ -86,6 +88,8 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
   private  var connectionStateChannel: EventChannel? = null
   private  var incomingMessagesChannel: EventChannel? = null
   private var aclConnectionChannel: EventChannel? = null
+  private var errorChannel: EventChannel? = null
+
 
   private  var deviceFoundReceiver: DeviceFoundReceiver? = null
   private  var adapterStateReceiver: BluetoothAdapterStateReceiver? = null
@@ -93,6 +97,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
   private  var connectionStateStreamHandler: ConnectionStateStreamHandler? = null
   private var aclConnectionReceiver: AclConnectionReceiver? = null
   private var incomingMessagesStreamHandler: IncomingMessagesStreamHandler? = null
+  private var errorStreamHandler: ErrorStreamHandler? = null
 
   private var connectionHandler: BluetoothConnection? = null
   private var bondingStateReceiver: BondingStateReceiver? = null
@@ -132,7 +137,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
     createIncomingMessagesChannel(flutterPluginBinding)
 
     createAclConnectionChannel(flutterPluginBinding)
-
+    createErrorChannel(flutterPluginBinding)
 
     Log.d(TAG, "onAttachedToEngine: JafraBluetoothPlugin was created")
   }
@@ -146,6 +151,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
     cleanDeviceFoundChannel()
     cleanAdapterStateChannel()
     cleanAclConnectionChannel()
+    cleanErrorChannel()
   }
 
 
@@ -186,7 +192,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
             result.success(aState)
           },
           onDenied = { error ->
-            Log.d(TAG, "onMethodCall: $error")
+            Log.d(TAG, "getState: $error")
             result.success(null)
           }
         )
@@ -200,11 +206,10 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
           onGranted = {
 
             val name = bluetoothAdapter.name
-            Log.d(TAG, "onMethodCall: name: $name")
             result.success(name)
           },
           onDenied = { error ->
-            Log.d(TAG, "onMethodCall: $error")
+            Log.d(TAG, "getName: $error")
             result.success(null)
           }
         )
@@ -259,6 +264,9 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
       }
 
       startServer -> {
+        if (bluetoothAdapter.isDiscovering) {
+          bluetoothAdapter.cancelDiscovery()
+        }
         val server = BluetoothServer(bluetoothAdapter)
         server.startServer(
           onConnected = { socket, remoteDevice ->
@@ -284,6 +292,9 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
       }
 
       connectToServer -> {
+        if (bluetoothAdapter.isDiscovering) {
+          bluetoothAdapter.cancelDiscovery()
+        }
         val address = call.argument<String>("address")
         if (address == null) {
           result.error("INVALID_ARGUMENT", "Device address is null", null)
@@ -495,8 +506,22 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
     connectionStateStreamHandler = null
   }
 
+  private fun createErrorChannel(binding: FlutterPlugin.FlutterPluginBinding) {
+    errorStreamHandler = ErrorStreamHandler()
+    errorChannel = EventChannel(binding.binaryMessenger, "$channelName/$errorChannelName")
+    errorChannel?.setStreamHandler(errorStreamHandler)
+  }
+
+  private fun cleanErrorChannel() {
+    errorChannel?.setStreamHandler(null)
+    errorChannel = null
+    errorStreamHandler = null
+  }
+
   private fun closeConnection() {
+    connectionHandler?.stop()
     bluetoothSocket?.close()
+    connectionHandler = null
     bluetoothSocket = null
   }
 

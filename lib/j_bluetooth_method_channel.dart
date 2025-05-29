@@ -7,12 +7,18 @@ import 'package:j_bluetooth/models/bluetooth_adapter_state.dart';
 import 'package:j_bluetooth/models/bluetooth_connection_state.dart';
 import 'package:j_bluetooth/models/connected_device.dart';
 import 'package:j_bluetooth/models/jafra_bluetooth_device.dart';
+import 'package:j_bluetooth/models/plugin_error.dart';
 
 import 'j_bluetooth_platform_interface.dart';
+
+const String _logName = "MethodChannelJBluetooth";
 
 /// An implementation of [JBluetoothPlatform] that uses method channels.
 class MethodChannelJBluetooth extends JBluetoothPlatform {
   /// The method channel used to interact with the native platform.
+
+  bool _isDisposed = false;
+
   @visibleForTesting
   final methodChannel = const MethodChannel(_BluetoothKeys.channelName);
 
@@ -45,6 +51,12 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
       '${_BluetoothKeys.channelName}/${_BluetoothKeys.connectionStateChannelName}');
   late StreamController<BluetoothConnectionState> _connectionStateController;
   StreamSubscription<dynamic>? _connectionStateSubscription;
+
+  static const EventChannel _errorChannel = EventChannel(
+      '${_BluetoothKeys.channelName}/${_BluetoothKeys.errorChannelName}');
+
+  late StreamController<PluginError> _pluginErrorController;
+  StreamSubscription<dynamic>? _pluginErrorSubscription;
 
   MethodChannelJBluetooth() {
     _adapterStateController = StreamController.broadcast(
@@ -81,6 +93,12 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
     _aclConnectionController = StreamController.broadcast(
       onCancel: () {
         _aclConnectionSubscription?.cancel();
+      },
+    );
+
+    _pluginErrorController = StreamController.broadcast(
+      onCancel: () {
+        _pluginErrorSubscription?.cancel();
       },
     );
 
@@ -143,10 +161,24 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
           onError: _connectionStateController.addError,
           onDone: _connectionStateController.close,
         );
+
+    _pluginErrorSubscription =
+        _errorChannel.receiveBroadcastStream().map((event) {
+      if (event is Map<String, dynamic>) {
+        return PluginError.fromMap(event);
+      }
+      return PluginError.fromMap({});
+    }).listen(
+      _pluginErrorController.add,
+      onError: _pluginErrorController.addError,
+      onDone: _pluginErrorController.close,
+    );
   }
 
   @override
   Future<void> dispose() async {
+    if (_isDisposed) return;
+    _isDisposed = true;
     try {
       await methodChannel.invokeMethod(_BluetoothKeys.dispose);
       _adapterStateSubscription.cancel();
@@ -172,39 +204,96 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
   }
 
   @override
-  Future<String?> get adapterAddress async =>
-      await methodChannel.invokeMethod<String>(_BluetoothKeys.getAddress);
+  Future<String?> get adapterAddress async {
+    try {
+      return await methodChannel
+          .invokeMethod<String>(_BluetoothKeys.getAddress);
+    } catch (e, stackTrace) {
+      log(
+        'Failed to get adapter address',
+        error: e,
+        stackTrace: stackTrace,
+        name: _logName,
+      );
+      return null;
+    }
+  }
 
   @override
-  Future<String?> get adapterName async =>
-      await methodChannel.invokeMethod<String>(_BluetoothKeys.getName);
+  Future<String?> get adapterName async {
+    try {
+      return await methodChannel.invokeMethod<String>(_BluetoothKeys.getName);
+    } catch (e, stackTrace) {
+      log(
+        'Failed to get adapter name',
+        error: e,
+        stackTrace: stackTrace,
+        name: _logName,
+      );
+      return null;
+    }
+  }
 
   @override
-  Future<bool> get isAvailable async =>
-      (await methodChannel.invokeMethod<bool>(_BluetoothKeys.isAvailable)) ??
-      false;
+  Future<bool> get isAvailable async {
+    try {
+      return (await methodChannel
+              .invokeMethod<bool>(_BluetoothKeys.isAvailable)) ??
+          false;
+    } catch (e, stackTrace) {
+      log(
+        'Failed to get adapter availability',
+        error: e,
+        stackTrace: stackTrace,
+        name: _logName,
+      );
+      return false;
+    }
+  }
 
   @override
 
   ///  Bluetooth adapter is On.
-  Future<bool> get isEnabled async =>
-      (await methodChannel.invokeMethod<bool>(_BluetoothKeys.isEnabled)) ??
-      false;
+  Future<bool> get isEnabled async {
+    try {
+      return (await methodChannel
+              .invokeMethod<bool>(_BluetoothKeys.isEnabled)) ??
+          false;
+    } catch (e, stackTrace) {
+      log(
+        'Failed to get adapter isEnabled',
+        error: e,
+        stackTrace: stackTrace,
+        name: _logName,
+      );
+      return false;
+    }
+  }
 
   @override
 
   /// State of the Bluetooth adapter.
   Future<BluetoothAdapterState> get state async {
-    final data = await methodChannel.invokeMethod(_BluetoothKeys.getState);
-    final aState = BluetoothAdapterState.fromCode(data);
-    return aState;
+    try {
+      final data = await methodChannel.invokeMethod(_BluetoothKeys.getState);
+      final aState = BluetoothAdapterState.fromCode(data);
+      return aState;
+    } catch (e, stackTrace) {
+      log(
+        'Failed to get adapter state',
+        error: e,
+        stackTrace: stackTrace,
+        name: _logName,
+      );
+      return BluetoothAdapterState.unknown;
+    }
   }
 
   @override
 
   /// Starts discovery and provides stream of `BluetoothDiscoveryResult`s.
-  Stream<BluetoothAdapterState> discoveredDevices() {
-    return _adapterStateController.stream;
+  Stream<JafraBluetoothDevice> discoveredDevices() {
+    return _deviceFoundController.stream;
   }
 
   @override
@@ -231,14 +320,31 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
       await methodChannel.invokeMethod(_BluetoothKeys.sendMessage, {
         'message': message,
       });
-    } on PlatformException catch (e) {
-      debugPrint('Failed to send message: ${e.message}');
+    } catch (e, stackTrace) {
+      log(
+        'Failed to send message',
+        error: e,
+        stackTrace: stackTrace,
+        name: _logName,
+      );
+      return;
     }
   }
 
   @override
-  Future<void> startServer() async =>
+  Future<void> startServer() async {
+    try {
       await methodChannel.invokeMethod(_BluetoothKeys.startServer);
+    } catch (e, stackTrace) {
+      log(
+        'Failed to start bluetooth server',
+        error: e,
+        stackTrace: stackTrace,
+        name: _logName,
+      );
+      return;
+    }
+  }
 
   @override
   Stream<BluetoothConnectionState> connectionState() {
@@ -247,10 +353,20 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
 
   @override
   Future<void> connectToServer(JafraBluetoothDevice device) async {
-    final address = device.address;
-    await methodChannel.invokeMethod(_BluetoothKeys.connectToServer, {
-      'address': address,
-    });
+    try {
+      final address = device.address;
+      await methodChannel.invokeMethod(_BluetoothKeys.connectToServer, {
+        'address': address,
+      });
+    } catch (e, stackTrace) {
+      log(
+        'Failed to connect to server',
+        error: e,
+        stackTrace: stackTrace,
+        name: _logName,
+      );
+      return;
+    }
   }
 
   @override
@@ -258,12 +374,24 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
 
   @override
   Future<List<JafraBluetoothDevice>> pairedDevices() async {
-    final data = await methodChannel.invokeMethod(_BluetoothKeys.pairedDevices);
-    if (data is List) {
-      final devices = data.map((e) => JafraBluetoothDevice.fromMap(e)).toList();
-      return devices;
+    try {
+      final data =
+          await methodChannel.invokeMethod(_BluetoothKeys.pairedDevices);
+      if (data is List) {
+        final devices =
+            data.map((e) => JafraBluetoothDevice.fromMap(e)).toList();
+        return devices;
+      }
+      return [];
+    } catch (e, stackTrace) {
+      log(
+        'Failed to get paired devices',
+        error: e,
+        stackTrace: stackTrace,
+        name: _logName,
+      );
+      return [];
     }
-    return [];
   }
 
   @override
@@ -273,8 +401,21 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
 
   @override
   Future<void> openSettings() async {
-    methodChannel.invokeMethod(_BluetoothKeys.openSettings);
+    try {
+      methodChannel.invokeMethod(_BluetoothKeys.openSettings);
+    } catch (e, stackTrace) {
+      log(
+        'Failed to open bluetooth setting',
+        error: e,
+        stackTrace: stackTrace,
+        name: _logName,
+      );
+      return;
+    }
   }
+
+  @override
+  Stream<PluginError> pluginErrors() => _pluginErrorController.stream;
 }
 
 abstract class _BluetoothKeys {
@@ -284,6 +425,7 @@ abstract class _BluetoothKeys {
   static const String isDiscoveringChannelName = 'is_discovering';
   static const String connectionStateChannelName = 'connection_state';
   static const String inComingChannelName = 'incoming';
+  static const String errorChannelName = 'error';
 
   static const String isAvailable = 'isAvailable';
   // static const String isOn = 'isOn';
