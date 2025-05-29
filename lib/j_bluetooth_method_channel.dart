@@ -147,24 +147,28 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
 
   @override
   Future<void> dispose() async {
-    // await methodChannel.invokeMethod('dispose');
-    _adapterStateSubscription.cancel();
-    _discoveryStateController.close();
+    try {
+      await methodChannel.invokeMethod(_BluetoothKeys.dispose);
+      _adapterStateSubscription.cancel();
+      _adapterStateController.close();
 
-    _discoveryStateSubscription.cancel();
-    _discoveryStateController.close();
+      _discoveryStateSubscription.cancel();
+      _discoveryStateController.close();
 
-    _deviceFoundSubscription.cancel();
-    _deviceFoundController.close();
+      _deviceFoundSubscription.cancel();
+      _deviceFoundController.close();
 
-    _incomingMessagesSubscription?.cancel();
-    _incomingMessagesController.close();
+      _incomingMessagesSubscription?.cancel();
+      _incomingMessagesController.close();
 
-    _aclConnectionSubscription?.cancel();
-    _aclConnectionController.close();
+      _aclConnectionSubscription?.cancel();
+      _aclConnectionController.close();
 
-    _connectionStateSubscription?.cancel();
-    _connectionStateController.close();
+      _connectionStateSubscription?.cancel();
+      _connectionStateController.close();
+    } catch (e) {
+      log('Error', error: e);
+    }
   }
 
   @override
@@ -297,4 +301,5 @@ abstract class _BluetoothKeys {
 
   static const String pairedDevices = 'pairedDevices';
   static const String aclChannelName = 'acl_connection';
+  static const String dispose = 'dispose';
 }

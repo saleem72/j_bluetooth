@@ -68,6 +68,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
     const val pairDevice = "pairDevice"
     const val sendMessage = "sendMessage"
     const val pairedDevices = "pairedDevices"
+    const val dispose = "dispose"
 //    const val uuidString = "00001101-0000-1000-8000-00805F9B34FB"
 
 //    const val ensurePermissions = "ensurePermissions"
@@ -138,13 +139,13 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
 
   override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
     channel.setMethodCallHandler(null)
+    closeConnection()
     cleanDiscoveryStateChannel()
     cleanConnectionStateChannel()
     cleanIncomingMessagesChannel()
     cleanDeviceFoundChannel()
     cleanAdapterStateChannel()
     cleanAclConnectionChannel()
-    closeConnection()
   }
 
 
@@ -317,6 +318,11 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
       sendMessage -> {
         val message = call.argument<String>("message")
         connectionHandler?.write(message ?: "")
+      }
+
+      dispose -> {
+        closeConnection()
+        result.success(null)
       }
 
       else -> result.notImplemented()

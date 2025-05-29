@@ -105,7 +105,7 @@ class DeviceTile extends StatelessWidget {
                   child: Text(
                     '${device.rssi} dBm',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: device.majorCategory.color,
+                          color: device.rssiColor,
                         ),
                   ),
                 )
