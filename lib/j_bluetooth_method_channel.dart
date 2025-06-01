@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:j_bluetooth/models/bluetooth_adapter_state.dart';
 import 'package:j_bluetooth/models/bluetooth_connection_state.dart';
 import 'package:j_bluetooth/models/connected_device.dart';
-import 'package:j_bluetooth/models/connection_status.dart';
+import 'package:j_bluetooth/models/connecting_status.dart';
 import 'package:j_bluetooth/models/jafra_bluetooth_device.dart';
 import 'package:j_bluetooth/models/jafra_error.dart';
 
@@ -63,9 +63,9 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
 
   static const EventChannel _serverStatusChannel = EventChannel(
       '${_BluetoothKeys.channelName}/${_BluetoothKeys.serverStatusChannelName}');
-  late final ManagedStreamController<ConnectionStatus>
+  late final ManagedStreamController<ConnectingStatus>
       _serverStatusManagedController;
-  late StreamController<ConnectionStatus> _serverStatusController;
+  late StreamController<ConnectingStatus> _serverStatusController;
 
   void _createAdapterStateController() {
     _adapterStateManagedController =
@@ -252,11 +252,11 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
   }
 
   void _createServerStatusController() {
-    _serverStatusManagedController = ManagedStreamController<ConnectionStatus>(
+    _serverStatusManagedController = ManagedStreamController<ConnectingStatus>(
       streamFactory: () => _serverStatusChannel.receiveBroadcastStream().map(
           (event) => event is Map
-              ? ConnectionStatus.fromMap(event)
-              : ConnectionStatus.empty()),
+              ? ConnectingStatus.fromMap(event)
+              : ConnectingStatus.empty()),
     );
 
     _serverStatusController = _serverStatusManagedController.create();
@@ -523,7 +523,7 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
   }
 
   @override
-  Stream<ConnectionStatus> serverStatus() {
+  Stream<ConnectingStatus> serverStatus() {
     return _serverStatusController.stream;
   }
 }

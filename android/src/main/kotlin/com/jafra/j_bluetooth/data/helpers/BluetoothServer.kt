@@ -11,20 +11,16 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import java.io.IOException
-import java.net.SocketTimeoutException
 
 class BluetoothServer(
     private val adapter: BluetoothAdapter,
-    private val serverStatusStreamHandler: ServerStatusStreamHandler?, ) {
-
-
-
+    private val serverStatusStreamHandler: ServerStatusStreamHandler?
+) {
     private var serverSocket: BluetoothServerSocket? = null
 
     fun startServer(
-        timeoutMs: Int = 5000,
+        timeoutMs: Int = 15000,
         onConnected: (BluetoothSocket, BluetoothDevice) -> Unit,
         onError: (Exception) -> Unit
     ) {

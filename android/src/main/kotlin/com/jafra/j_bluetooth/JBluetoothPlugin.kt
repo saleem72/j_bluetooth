@@ -16,20 +16,19 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.jafra.j_bluetooth.data.helpers.BluetoothClient
 import com.jafra.j_bluetooth.data.helpers.BluetoothConnection
-import com.jafra.j_bluetooth.data.receivers.DeviceFoundReceiver
-import com.jafra.j_bluetooth.data.receivers.DiscoveryStateReceiver
-import com.jafra.j_bluetooth.data.receivers.BondingStateReceiver
 import com.jafra.j_bluetooth.data.helpers.BluetoothServer
 import com.jafra.j_bluetooth.data.mappers.toJafraBluetoothDevice
 import com.jafra.j_bluetooth.data.mappers.toMap
-import com.jafra.j_bluetooth.data.receivers.BluetoothAdapterStateReceiver
 import com.jafra.j_bluetooth.data.receivers.AclConnectionReceiver
+import com.jafra.j_bluetooth.data.receivers.BluetoothAdapterStateReceiver
+import com.jafra.j_bluetooth.data.receivers.BondingStateReceiver
+import com.jafra.j_bluetooth.data.receivers.DeviceFoundReceiver
+import com.jafra.j_bluetooth.data.receivers.DiscoveryStateReceiver
 import com.jafra.j_bluetooth.data.streams.ConnectionStateStreamHandler
 import com.jafra.j_bluetooth.data.streams.ErrorStreamHandler
 import com.jafra.j_bluetooth.data.streams.IncomingMessagesStreamHandler
 import com.jafra.j_bluetooth.data.streams.ServerStatusStreamHandler
 import io.flutter.Log
-
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -278,7 +277,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
           bluetoothAdapter.cancelDiscovery()
         }
         val seconds: Int? = call.argument("seconds")
-        val timeoutMs = seconds?.times(1000) ?: 5000
+        val timeoutMs = seconds?.times(1000) ?: 15000
         server = BluetoothServer(bluetoothAdapter, serverStatusStreamHandler)
         server?.startServer(
           timeoutMs,
@@ -315,14 +314,18 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
           bluetoothAdapter.cancelDiscovery()
         }
         val address = call.argument<String>("address")
+        val seconds: Int? = call.argument("seconds")
+        val timeoutMs = seconds?.times(1000) ?: 15000
+
         if (address == null) {
           result.error("INVALID_ARGUMENT", "Device address is null", null)
           return
         }
         val device = bluetoothAdapter.getRemoteDevice(address)
-        val client = BluetoothClient(device)
+        val client = BluetoothClient(device, serverStatusStreamHandler)
 
         client.connect(
+          timeoutMs,
           onConnected = { socket, remoteDevice ->
             Log.d(TAG, "Client connected to server")
             // Save socket and start I/O stream handling

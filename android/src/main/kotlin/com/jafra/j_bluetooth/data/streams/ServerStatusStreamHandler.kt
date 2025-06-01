@@ -1,8 +1,6 @@
 package com.jafra.j_bluetooth.data.streams
 
-import android.health.connect.datatypes.units.BloodGlucose
 import io.flutter.plugin.common.EventChannel
-import java.util.concurrent.BlockingDeque
 
 class ServerStatusStreamHandler : EventChannel.StreamHandler {
     private var eventSink: EventChannel.EventSink? = null
