@@ -38,7 +38,7 @@ class JBluetooth {
   Stream<BluetoothConnectionState> connectionState() =>
       singleton.connectionState();
 
-  Future<void> startServer() => singleton.startServer();
+  Future<void> startServer({int? seconds}) => singleton.startServer(seconds);
 
   Future<void> sendMessage(String message) => singleton.sendMessage(message);
 

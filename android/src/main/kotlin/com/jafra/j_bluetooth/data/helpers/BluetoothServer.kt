@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.IOException
+import java.net.SocketTimeoutException
 
 class BluetoothServer(
     private val adapter: BluetoothAdapter,
@@ -23,10 +24,12 @@ class BluetoothServer(
     private var serverSocket: BluetoothServerSocket? = null
 
     fun startServer(
-        timeoutMs: Long = 10000L,
+        timeoutMs: Int = 5000,
         onConnected: (BluetoothSocket, BluetoothDevice) -> Unit,
         onError: (Exception) -> Unit
     ) {
+
+        Log.d("BluetoothServer", "timeoutMs: $timeoutMs")
         var serverSocket: BluetoothServerSocket? = null // Declare outside try block
 
         serverStatusStreamHandler?.notify(true)
@@ -38,10 +41,8 @@ class BluetoothServer(
                 )
 
                 Log.d("BluetoothServer", "Waiting for client...")
-
-                val socket: BluetoothSocket? = withTimeoutOrNull(timeoutMs) {
-                    serverSocket?.accept() // blocking call in IO dispatcher
-                }
+                val socket: BluetoothSocket? = serverSocket?.accept(timeoutMs)
+                Log.d("BluetoothServer", "Waiting has ended")
 
                 if (socket != null) {
                     val remoteDevice = socket.remoteDevice
@@ -59,8 +60,8 @@ class BluetoothServer(
                 }
 
             } catch (e: IOException) {
+                Log.d("Server error", "startServer: Bluetooth accept() timed out")
                 withContext(Dispatchers.Main) {
-                    Log.e("BluetoothServer", "Server error: ${e.message}")
                     onError(e)
                     serverStatusStreamHandler?.notify(false)
                 }
@@ -77,6 +78,8 @@ class BluetoothServer(
         }
 
     }
+
+
 
 //    fun startServer(onConnected: (BluetoothSocket) -> Unit, onError: (Exception) -> Unit) {
 //        Thread {

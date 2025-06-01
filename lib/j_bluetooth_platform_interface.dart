@@ -60,7 +60,7 @@ abstract class JBluetoothPlatform extends PlatformInterface {
     throw UnimplementedError('ensurePermissions() has not been implemented.');
   }
 
-  Future<void> startServer();
+  Future<void> startServer(int? seconds);
 
   Stream<BluetoothConnectionState> connectionState();
 

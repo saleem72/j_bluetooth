@@ -414,9 +414,14 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
   }
 
   @override
-  Future<void> startServer() async {
+  Future<void> startServer(int? seconds) async {
     try {
-      await methodChannel.invokeMethod(_BluetoothKeys.startServer);
+      final arguments = seconds == null
+          ? null
+          : {
+              'address': seconds,
+            };
+      await methodChannel.invokeMethod(_BluetoothKeys.startServer, arguments);
     } catch (e, stackTrace) {
       log(
         'Failed to start bluetooth server',

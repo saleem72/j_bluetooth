@@ -277,8 +277,11 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
         if (bluetoothAdapter.isDiscovering) {
           bluetoothAdapter.cancelDiscovery()
         }
-         server = BluetoothServer(bluetoothAdapter, serverStatusStreamHandler)
+        val seconds: Int? = call.argument("seconds")
+        val timeoutMs = seconds?.times(1000) ?: 5000
+        server = BluetoothServer(bluetoothAdapter, serverStatusStreamHandler)
         server?.startServer(
+          timeoutMs,
           onConnected = { socket, remoteDevice ->
             // Save socket and start I/O stream handling
             Log.d(TAG, "Server accepted connection")
@@ -295,7 +298,6 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
             connectionStateStreamHandler?.notifyConnected(remoteDevice)
           },
           onError = { e ->
-            Log.e(TAG, "Server error: ${e.message}")
             connectionStateStreamHandler?.notifyDisconnected()
             connectionStateStreamHandler?.notifyError(e.message ?: "Unknown Error")
             closeConnection()
