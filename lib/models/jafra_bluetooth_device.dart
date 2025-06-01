@@ -2,6 +2,7 @@
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
+import 'package:j_bluetooth/models/bluetooth_device_bond_status.dart';
 import 'package:j_bluetooth/models/bluetooth_device_major_type.dart';
 import 'package:j_bluetooth/models/bluetooth_device_minor_type.dart';
 
@@ -13,6 +14,7 @@ class JafraBluetoothDevice extends Equatable {
   final int majorDeviceClass;
   final int minorDeviceClass;
   final int rssi;
+  final BluetoothDeviceBondStatus bond;
 
   final BluetoothDeviceMajorType majorCategory;
   final BluetoothDeviceMinorType? minorCategory;
@@ -26,6 +28,7 @@ class JafraBluetoothDevice extends Equatable {
     required this.majorCategory,
     required this.minorCategory,
     required this.rssi,
+    required this.bond,
   });
 
   factory JafraBluetoothDevice.fromMap(dynamic data) {
@@ -42,6 +45,9 @@ class JafraBluetoothDevice extends Equatable {
           ? BluetoothDeviceMinorType.fromFullClass(data['deviceClass'])
           : BluetoothDeviceMinorType.unknownDevice,
       rssi: data["rssi"],
+      bond: data["bond"] is String
+          ? BluetoothDeviceBondStatus.fromString(data["bond"])
+          : BluetoothDeviceBondStatus.unknown,
     );
   }
 
