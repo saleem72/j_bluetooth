@@ -419,7 +419,7 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
       final arguments = seconds == null
           ? null
           : {
-              'address': seconds,
+              'seconds': seconds,
             };
       await methodChannel.invokeMethod(_BluetoothKeys.startServer, arguments);
     } catch (e, stackTrace) {
