@@ -253,7 +253,7 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
     _serverStatusManagedController = ManagedStreamController<bool>(
       streamFactory: () => _serverStatusChannel
           .receiveBroadcastStream()
-          .map((event) => event == true ? true : false),
+          .map((event) => event is Map ? event["status"] : false),
     );
 
     _serverStatusController = _serverStatusManagedController.create();
