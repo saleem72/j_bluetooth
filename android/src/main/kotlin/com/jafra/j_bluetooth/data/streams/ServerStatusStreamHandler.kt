@@ -1,7 +1,8 @@
 package com.jafra.j_bluetooth.data.streams
 
-import android.bluetooth.BluetoothDevice
+import android.health.connect.datatypes.units.BloodGlucose
 import io.flutter.plugin.common.EventChannel
+import java.util.concurrent.BlockingDeque
 
 class ServerStatusStreamHandler : EventChannel.StreamHandler {
     private var eventSink: EventChannel.EventSink? = null
@@ -14,10 +15,10 @@ class ServerStatusStreamHandler : EventChannel.StreamHandler {
         eventSink = null
     }
 
-    fun notify(status: Boolean) {
-        val data = mapOf(
-            "status" to status
-        )
+    fun notify(serverStatus: Boolean? = null, connectionStatus: Boolean? = null) {
+        val data:  HashMap<String, Any?> = HashMap()
+        serverStatus?.let { data["serverStatus"] = it }
+        connectionStatus?.let { data["connectionStatus"] = it }
         eventSink?.success(data)
     }
 

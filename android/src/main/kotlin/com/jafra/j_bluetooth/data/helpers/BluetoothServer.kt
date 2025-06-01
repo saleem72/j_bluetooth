@@ -32,7 +32,7 @@ class BluetoothServer(
         Log.d("BluetoothServer", "timeoutMs: $timeoutMs")
         var serverSocket: BluetoothServerSocket? = null // Declare outside try block
 
-        serverStatusStreamHandler?.notify(true)
+        serverStatusStreamHandler?.notify(serverStatus = true)
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 serverSocket = adapter.listenUsingRfcommWithServiceRecord(
@@ -48,14 +48,14 @@ class BluetoothServer(
                     val remoteDevice = socket.remoteDevice
                     withContext(Dispatchers.Main) {
                         onConnected(socket, remoteDevice)
-                        serverStatusStreamHandler?.notify(false)
+                        serverStatusStreamHandler?.notify(serverStatus = false)
                     }
                 } else {
                     // Timed out waiting for client
                     withContext(Dispatchers.Main) {
                         Log.d("BluetoothServer", "Accept timeout")
                         onError(IOException("Bluetooth accept() timed out"))
-                        serverStatusStreamHandler?.notify(false)
+                        serverStatusStreamHandler?.notify(serverStatus = false)
                     }
                 }
 
@@ -63,7 +63,7 @@ class BluetoothServer(
                 Log.d("Server error", "startServer: Bluetooth accept() timed out")
                 withContext(Dispatchers.Main) {
                     onError(e)
-                    serverStatusStreamHandler?.notify(false)
+                    serverStatusStreamHandler?.notify(serverStatus = false)
                 }
             } finally {
                 try {
@@ -72,7 +72,7 @@ class BluetoothServer(
                     Log.e("BluetoothServer", "Error closing server socket", e)
                 }
                 withContext(Dispatchers.Main) {
-                    serverStatusStreamHandler?.notify(false)
+                    serverStatusStreamHandler?.notify(serverStatus = false)
                 }
             }
         }
