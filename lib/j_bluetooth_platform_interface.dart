@@ -2,7 +2,7 @@ import 'package:j_bluetooth/models/bluetooth_adapter_state.dart';
 import 'package:j_bluetooth/models/bluetooth_connection_state.dart';
 import 'package:j_bluetooth/models/connected_device.dart';
 import 'package:j_bluetooth/models/jafra_bluetooth_device.dart';
-import 'package:j_bluetooth/models/plugin_error.dart';
+import 'package:j_bluetooth/models/jafra_error.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'j_bluetooth_method_channel.dart';
@@ -74,5 +74,5 @@ abstract class JBluetoothPlatform extends PlatformInterface {
 
   Stream<ConnectedDevice> connectedDevice();
 
-  Stream<PluginError> pluginErrors();
+  Stream<JafraError> pluginErrors();
 }

@@ -2,7 +2,7 @@ import 'package:j_bluetooth/models/bluetooth_adapter_state.dart';
 import 'package:j_bluetooth/models/bluetooth_connection_state.dart';
 import 'package:j_bluetooth/models/connected_device.dart';
 import 'package:j_bluetooth/models/jafra_bluetooth_device.dart';
-import 'package:j_bluetooth/models/plugin_error.dart';
+import 'package:j_bluetooth/models/jafra_error.dart';
 
 import 'j_bluetooth_platform_interface.dart';
 
@@ -53,5 +53,5 @@ class JBluetooth {
 
   Future<void> openSettings() => singleton.openSettings();
 
-  Stream<PluginError> pluginErrors() => singleton.pluginErrors();
+  Stream<JafraError> pluginErrors() => singleton.pluginErrors();
 }

@@ -78,7 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
       pairedDevices = await _jafraBluetoothPlugin.pairedDevices();
 
       _adapterStateSubscription =
-          _jafraBluetoothPlugin.discoveredDevices().listen((r) {
+          _jafraBluetoothPlugin.adapterState().listen((r) {
         setState(() {
           adapterState = r;
         });

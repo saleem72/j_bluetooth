@@ -7,16 +7,15 @@ import 'package:j_bluetooth/models/bluetooth_adapter_state.dart';
 import 'package:j_bluetooth/models/bluetooth_connection_state.dart';
 import 'package:j_bluetooth/models/connected_device.dart';
 import 'package:j_bluetooth/models/jafra_bluetooth_device.dart';
-import 'package:j_bluetooth/models/plugin_error.dart';
+import 'package:j_bluetooth/models/jafra_error.dart';
 
+import 'helpers/managed_stream_controller.dart';
 import 'j_bluetooth_platform_interface.dart';
 
 const String _logName = "MethodChannelJBluetooth";
 
 /// An implementation of [JBluetoothPlatform] that uses method channels.
 class MethodChannelJBluetooth extends JBluetoothPlatform {
-  /// The method channel used to interact with the native platform.
-
   bool _isDisposed = false;
 
   @visibleForTesting
@@ -24,183 +23,257 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
 
   final EventChannel _adapterStateChannel = const EventChannel(
       '${_BluetoothKeys.channelName}/${_BluetoothKeys.adapterStateChannelName}');
-  late StreamSubscription<BluetoothAdapterState> _adapterStateSubscription;
-  late StreamController<BluetoothAdapterState> _adapterStateController;
+  late final ManagedStreamController<BluetoothAdapterState>
+      _adapterStateManagedController;
+  late final StreamController<BluetoothAdapterState> _adapterStateController;
 
   final EventChannel _discoveryStateChannel = const EventChannel(
       '${_BluetoothKeys.channelName}/${_BluetoothKeys.isDiscoveringChannelName}');
-  late StreamSubscription<bool> _discoveryStateSubscription;
+  late final ManagedStreamController<bool> _discoveryStateManagedController;
   late StreamController<bool> _discoveryStateController;
 
   final EventChannel _deviceFoundChannel = const EventChannel(
       '${_BluetoothKeys.channelName}/${_BluetoothKeys.discoveryChannelName}');
+  late final ManagedStreamController<JafraBluetoothDevice>
+      _deviceFoundManagedController;
   late StreamController<JafraBluetoothDevice> _deviceFoundController;
-  late StreamSubscription<JafraBluetoothDevice> _deviceFoundSubscription;
-
-  static const _incomingMessagesChannel = EventChannel(
-      '${_BluetoothKeys.channelName}/${_BluetoothKeys.inComingChannelName}');
-  late StreamController<String> _incomingMessagesController;
-  StreamSubscription<dynamic>? _incomingMessagesSubscription;
-
-  static const _aclConnectionChannel = EventChannel(
-      '${_BluetoothKeys.channelName}/${_BluetoothKeys.aclChannelName}');
-  late StreamController<ConnectedDevice> _aclConnectionController;
-  StreamSubscription<dynamic>? _aclConnectionSubscription;
 
   static const EventChannel _connectionStateChannel = EventChannel(
       '${_BluetoothKeys.channelName}/${_BluetoothKeys.connectionStateChannelName}');
+  late final ManagedStreamController<BluetoothConnectionState>
+      _connectionStateManagedController;
   late StreamController<BluetoothConnectionState> _connectionStateController;
-  StreamSubscription<dynamic>? _connectionStateSubscription;
+
+  static const _incomingMessagesChannel = EventChannel(
+      '${_BluetoothKeys.channelName}/${_BluetoothKeys.inComingChannelName}');
+  late final ManagedStreamController<String> _incomingMessagesManagedController;
+  late StreamController<String> _incomingMessagesController;
+
+  static const _aclConnectionChannel = EventChannel(
+      '${_BluetoothKeys.channelName}/${_BluetoothKeys.aclChannelName}');
+  late final ManagedStreamController<ConnectedDevice>
+      _aclConnectionManagedController;
+  late StreamController<ConnectedDevice> _aclConnectionController;
 
   static const EventChannel _errorChannel = EventChannel(
       '${_BluetoothKeys.channelName}/${_BluetoothKeys.errorChannelName}');
+  late final ManagedStreamController<JafraError> _jafraErrorManagedController;
+  late StreamController<JafraError> _jafraErrorController;
 
-  late StreamController<PluginError> _pluginErrorController;
-  StreamSubscription<dynamic>? _pluginErrorSubscription;
+  void _createAdapterStateController() {
+    _adapterStateManagedController =
+        ManagedStreamController<BluetoothAdapterState>(
+      streamFactory: () => _adapterStateChannel
+          .receiveBroadcastStream()
+          .map((event) => BluetoothAdapterState.fromString(event as String)),
+    );
+
+    _adapterStateController = _adapterStateManagedController.create();
+  }
+
+  _logClosingControllerError(
+    String controller,
+    Object error,
+  ) {
+    log('Error disposing $controller', error: error, name: _logName);
+  }
+
+  Future<void> _disposeAdapterStateController() async {
+    try {
+      await _adapterStateManagedController.dispose();
+    } catch (e) {
+      _logClosingControllerError('adapterStateManagedController', e);
+    }
+
+    try {
+      await _adapterStateController.close();
+    } catch (e) {
+      _logClosingControllerError('adapterStateController', e);
+    }
+  }
+
+  void _createDiscoveryStateController() {
+    _discoveryStateManagedController = ManagedStreamController(
+      streamFactory: () =>
+          _discoveryStateChannel.receiveBroadcastStream().map((event) {
+        log(event.toString(), name: "MethodChannelJafraBluetooth");
+        if (event == true) {
+          return true;
+        }
+        return false;
+      }),
+    );
+
+    _discoveryStateController = _discoveryStateManagedController.create();
+  }
+
+  Future<void> _disposeDiscoveryStateController() async {
+    try {
+      await _discoveryStateManagedController.dispose();
+    } catch (e) {
+      _logClosingControllerError('discoveryStateManagedController', e);
+    }
+    try {
+      await _discoveryStateController.close();
+    } catch (e) {
+      _logClosingControllerError('discoveryStateController', e);
+    }
+  }
+
+  void _createDeviceFoundController() {
+    _deviceFoundManagedController =
+        ManagedStreamController<JafraBluetoothDevice>(
+      streamFactory: () => _deviceFoundChannel
+          .receiveBroadcastStream()
+          .map((event) => JafraBluetoothDevice.fromMap(event)),
+    );
+
+    _deviceFoundController = _deviceFoundManagedController.create();
+  }
+
+  Future<void> _disposeDeviceFoundController() async {
+    try {
+      await _deviceFoundManagedController.dispose();
+    } catch (e) {
+      _logClosingControllerError('deviceFoundManagedController', e);
+    }
+    try {
+      await _deviceFoundController.close();
+    } catch (e) {
+      _logClosingControllerError('deviceFoundController', e);
+    }
+  }
+
+  void _createConnectionStateController() {
+    _connectionStateManagedController =
+        ManagedStreamController<BluetoothConnectionState>(
+      streamFactory: () => _connectionStateChannel
+          .receiveBroadcastStream()
+          .map((event) => BluetoothConnectionState.fromMap(event)),
+    );
+
+    _connectionStateController = _connectionStateManagedController.create();
+  }
+
+  Future<void> _disposeConnectionStateController() async {
+    try {
+      await _connectionStateManagedController.dispose();
+    } catch (e) {
+      _logClosingControllerError('connectionStateManagedController', e);
+    }
+    try {
+      await _connectionStateController.close();
+    } catch (e) {
+      _logClosingControllerError('connectionStateController', e);
+    }
+  }
+
+  void _createIncomingMessagesController() {
+    _incomingMessagesManagedController = ManagedStreamController(
+      streamFactory: () =>
+          _incomingMessagesChannel.receiveBroadcastStream().map((event) {
+        log(event.toString(), name: '_incomingChannel');
+        return event.toString();
+      }),
+    );
+
+    _incomingMessagesController = _incomingMessagesManagedController.create();
+  }
+
+  Future<void> _disposeIncomingMessagesController() async {
+    try {
+      await _incomingMessagesManagedController.dispose();
+    } catch (e) {
+      _logClosingControllerError('incomingMessagesManagedController', e);
+    }
+    try {
+      await _incomingMessagesController.close();
+    } catch (e) {
+      _logClosingControllerError('incomingMessagesController', e);
+    }
+  }
+
+  void _createAclConnectionController() {
+    _aclConnectionManagedController = ManagedStreamController<ConnectedDevice>(
+      streamFactory: () =>
+          _aclConnectionChannel.receiveBroadcastStream().map((event) {
+        log(event.toString(), name: '_aclChannel');
+        return ConnectedDevice.fromMap(event);
+      }),
+    );
+
+    _aclConnectionController = _aclConnectionManagedController.create();
+  }
+
+  Future<void> _disposeAclConnectionController() async {
+    try {
+      _aclConnectionManagedController.dispose();
+    } catch (e) {
+      _logClosingControllerError('aclConnectionManagedController', e);
+    }
+    try {
+      _aclConnectionController.close();
+    } catch (e) {
+      _logClosingControllerError('aclConnectionController', e);
+    }
+  }
+
+  void _createJafraErrorController() {
+    _jafraErrorManagedController = ManagedStreamController<JafraError>(
+      streamFactory: () => _errorChannel.receiveBroadcastStream().map((event) {
+        if (event is Map<String, dynamic>) {
+          return JafraError.fromMap(event);
+        }
+        return JafraError.fromMap({});
+      }),
+    );
+
+    _jafraErrorController = _jafraErrorManagedController.create();
+  }
+
+  Future<void> _disposeJafraErrorController() async {
+    try {
+      await _jafraErrorManagedController.dispose();
+    } catch (e) {
+      _logClosingControllerError('jafraErrorManagedController', e);
+    }
+    try {
+      await _jafraErrorController.close();
+    } catch (e) {
+      _logClosingControllerError('jafraErrorController', e);
+    }
+  }
 
   MethodChannelJBluetooth() {
-    _adapterStateController = StreamController.broadcast(
-      onCancel: () {
-        // `cancelDiscovery` happens automatically by platform code when closing event sink
-        _adapterStateSubscription.cancel();
-      },
-    );
-    _discoveryStateController = StreamController.broadcast(
-      onCancel: () {
-        // `cancelDiscovery` happens automatically by platform code when closing event sink
-        _discoveryStateSubscription.cancel();
-      },
-    );
+    _createAdapterStateController();
+    _createDiscoveryStateController();
+    _createDeviceFoundController();
+    _createConnectionStateController();
+    _createIncomingMessagesController();
+    _createAclConnectionController();
+    _createJafraErrorController();
+  }
 
-    _deviceFoundController = StreamController.broadcast(
-      onCancel: () {
-        _deviceFoundSubscription.cancel();
-      },
-    );
-
-    _connectionStateController = StreamController.broadcast(
-      onCancel: () {
-        _connectionStateSubscription?.cancel();
-      },
-    );
-
-    _incomingMessagesController = StreamController.broadcast(
-      onCancel: () {
-        _incomingMessagesSubscription?.cancel();
-      },
-    );
-
-    _aclConnectionController = StreamController.broadcast(
-      onCancel: () {
-        _aclConnectionSubscription?.cancel();
-      },
-    );
-
-    _pluginErrorController = StreamController.broadcast(
-      onCancel: () {
-        _pluginErrorSubscription?.cancel();
-      },
-    );
-
-    _adapterStateSubscription = _adapterStateChannel
-        .receiveBroadcastStream()
-        .map((event) => BluetoothAdapterState.fromString(event as String))
-        .listen(
-          _adapterStateController.add,
-          onError: _adapterStateController.addError,
-          onDone: _adapterStateController.close,
-        );
-
-    _discoveryStateSubscription =
-        _discoveryStateChannel.receiveBroadcastStream().map((event) {
-      log(event.toString(), name: "MethodChannelJafraBluetooth");
-      if (event == true) {
-        return true;
-      }
-      return false;
-    }).listen(
-      _discoveryStateController.add,
-      onError: _discoveryStateController.addError,
-      onDone: _discoveryStateController.close,
-    );
-
-    _deviceFoundSubscription = _deviceFoundChannel
-        .receiveBroadcastStream()
-        .map((event) => JafraBluetoothDevice.fromMap(event))
-        .listen(
-          _deviceFoundController.add,
-          onError: _deviceFoundController.addError,
-          onDone: _deviceFoundController.close,
-        );
-
-    _incomingMessagesSubscription =
-        _incomingMessagesChannel.receiveBroadcastStream().map((event) {
-      log(event.toString(), name: '_incomingChannel');
-      return event.toString();
-    }).listen(
-      _incomingMessagesController.add,
-      onError: _incomingMessagesController.addError,
-      onDone: _incomingMessagesController.close,
-    );
-
-    _aclConnectionSubscription =
-        _aclConnectionChannel.receiveBroadcastStream().map((event) {
-      log(event.toString(), name: '_aclChannel');
-      return ConnectedDevice.fromMap(event);
-    }).listen(
-      _aclConnectionController.add,
-      onError: _aclConnectionController.addError,
-      onDone: _aclConnectionController.close,
-    );
-
-    _connectionStateSubscription = _connectionStateChannel
-        .receiveBroadcastStream()
-        .map((event) => BluetoothConnectionState.fromMap(event))
-        .listen(
-          _connectionStateController.add,
-          onError: _connectionStateController.addError,
-          onDone: _connectionStateController.close,
-        );
-
-    _pluginErrorSubscription =
-        _errorChannel.receiveBroadcastStream().map((event) {
-      if (event is Map<String, dynamic>) {
-        return PluginError.fromMap(event);
-      }
-      return PluginError.fromMap({});
-    }).listen(
-      _pluginErrorController.add,
-      onError: _pluginErrorController.addError,
-      onDone: _pluginErrorController.close,
-    );
+  Future<void> _cleanMainChannel() async {
+    try {
+      await methodChannel.invokeMethod(_BluetoothKeys.dispose);
+    } catch (e) {
+      log('Error cleaning main channel', error: e, name: _logName);
+    }
   }
 
   @override
   Future<void> dispose() async {
     if (_isDisposed) return;
     _isDisposed = true;
-    try {
-      await methodChannel.invokeMethod(_BluetoothKeys.dispose);
-      _adapterStateSubscription.cancel();
-      _adapterStateController.close();
-
-      _discoveryStateSubscription.cancel();
-      _discoveryStateController.close();
-
-      _deviceFoundSubscription.cancel();
-      _deviceFoundController.close();
-
-      _incomingMessagesSubscription?.cancel();
-      _incomingMessagesController.close();
-
-      _aclConnectionSubscription?.cancel();
-      _aclConnectionController.close();
-
-      _connectionStateSubscription?.cancel();
-      _connectionStateController.close();
-    } catch (e) {
-      log('Error', error: e);
-    }
+    await _cleanMainChannel();
+    await _disposeAdapterStateController();
+    await _disposeDiscoveryStateController();
+    await _disposeDeviceFoundController();
+    await _disposeConnectionStateController();
+    await _disposeIncomingMessagesController();
+    await _disposeAclConnectionController();
+    await _disposeJafraErrorController();
   }
 
   @override
@@ -252,8 +325,6 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
   }
 
   @override
-
-  ///  Bluetooth adapter is On.
   Future<bool> get isEnabled async {
     try {
       return (await methodChannel
@@ -271,8 +342,6 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
   }
 
   @override
-
-  /// State of the Bluetooth adapter.
   Future<BluetoothAdapterState> get state async {
     try {
       final data = await methodChannel.invokeMethod(_BluetoothKeys.getState);
@@ -290,29 +359,12 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
   }
 
   @override
-
-  /// Starts discovery and provides stream of `BluetoothDiscoveryResult`s.
-  Stream<BluetoothAdapterState> adapterState() {
-    return _adapterStateController.stream;
-  }
-
-  @override
-  Stream<JafraBluetoothDevice> onDevice() {
-    return _deviceFoundController.stream;
-  }
-
-  @override
   Future<void> startDiscover() async =>
       await methodChannel.invokeMethod(_BluetoothKeys.startDiscovery);
 
   @override
   Future<void> stopDiscover() async =>
       await methodChannel.invokeMethod(_BluetoothKeys.stopDiscovery);
-
-  @override
-  Stream<bool> isDiscovering() {
-    return _discoveryStateController.stream;
-  }
 
   @override
   Future<void> sendMessage(String message) async {
@@ -347,11 +399,6 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
   }
 
   @override
-  Stream<BluetoothConnectionState> connectionState() {
-    return _connectionStateController.stream;
-  }
-
-  @override
   Future<void> connectToServer(JafraBluetoothDevice device) async {
     try {
       final address = device.address;
@@ -368,9 +415,6 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
       return;
     }
   }
-
-  @override
-  Stream<String> incomingMessages() => _incomingMessagesController.stream;
 
   @override
   Future<List<JafraBluetoothDevice>> pairedDevices() async {
@@ -395,11 +439,6 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
   }
 
   @override
-  Stream<ConnectedDevice> connectedDevice() {
-    return _aclConnectionController.stream;
-  }
-
-  @override
   Future<void> openSettings() async {
     try {
       methodChannel.invokeMethod(_BluetoothKeys.openSettings);
@@ -415,7 +454,35 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
   }
 
   @override
-  Stream<PluginError> pluginErrors() => _pluginErrorController.stream;
+  Stream<JafraError> pluginErrors() => _jafraErrorController.stream;
+
+  @override
+  Stream<BluetoothAdapterState> adapterState() {
+    return _adapterStateController.stream;
+  }
+
+  @override
+  Stream<JafraBluetoothDevice> onDevice() {
+    return _deviceFoundController.stream;
+  }
+
+  @override
+  Stream<bool> isDiscovering() {
+    return _discoveryStateController.stream;
+  }
+
+  @override
+  Stream<BluetoothConnectionState> connectionState() {
+    return _connectionStateController.stream;
+  }
+
+  @override
+  Stream<String> incomingMessages() => _incomingMessagesController.stream;
+
+  @override
+  Stream<ConnectedDevice> connectedDevice() {
+    return _aclConnectionController.stream;
+  }
 }
 
 abstract class _BluetoothKeys {
