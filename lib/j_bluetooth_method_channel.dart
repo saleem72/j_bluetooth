@@ -60,6 +60,11 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
   late final ManagedStreamController<JafraError> _jafraErrorManagedController;
   late StreamController<JafraError> _jafraErrorController;
 
+  static const EventChannel _serverStatusChannel = EventChannel(
+      '${_BluetoothKeys.channelName}/${_BluetoothKeys.serverStatusChannelName}');
+  late final ManagedStreamController<bool> _serverStatusManagedController;
+  late StreamController<bool> _serverStatusController;
+
   void _createAdapterStateController() {
     _adapterStateManagedController =
         ManagedStreamController<BluetoothAdapterState>(
@@ -244,6 +249,29 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
     }
   }
 
+  void _createServerStatusController() {
+    _serverStatusManagedController = ManagedStreamController<bool>(
+      streamFactory: () => _serverStatusChannel
+          .receiveBroadcastStream()
+          .map((event) => event == true ? true : false),
+    );
+
+    _serverStatusController = _serverStatusManagedController.create();
+  }
+
+  Future<void> _disposeServerStatusController() async {
+    try {
+      await _serverStatusManagedController.dispose();
+    } catch (e) {
+      _logClosingControllerError('serverStatusManagedController', e);
+    }
+    try {
+      await _serverStatusController.close();
+    } catch (e) {
+      _logClosingControllerError('serverStatusController', e);
+    }
+  }
+
   MethodChannelJBluetooth() {
     _createAdapterStateController();
     _createDiscoveryStateController();
@@ -252,6 +280,7 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
     _createIncomingMessagesController();
     _createAclConnectionController();
     _createJafraErrorController();
+    _createServerStatusController();
   }
 
   Future<void> _cleanMainChannel() async {
@@ -274,6 +303,7 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
     await _disposeIncomingMessagesController();
     await _disposeAclConnectionController();
     await _disposeJafraErrorController();
+    await _disposeServerStatusController();
   }
 
   @override
@@ -493,6 +523,7 @@ abstract class _BluetoothKeys {
   static const String connectionStateChannelName = 'connection_state';
   static const String inComingChannelName = 'incoming';
   static const String errorChannelName = 'error';
+  static const String serverStatusChannelName = "serverStatus";
 
   static const String isAvailable = 'isAvailable';
   // static const String isOn = 'isOn';

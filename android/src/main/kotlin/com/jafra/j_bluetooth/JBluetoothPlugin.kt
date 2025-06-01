@@ -27,6 +27,7 @@ import com.jafra.j_bluetooth.data.receivers.AclConnectionReceiver
 import com.jafra.j_bluetooth.data.streams.ConnectionStateStreamHandler
 import com.jafra.j_bluetooth.data.streams.ErrorStreamHandler
 import com.jafra.j_bluetooth.data.streams.IncomingMessagesStreamHandler
+import com.jafra.j_bluetooth.data.streams.ServerStatusStreamHandler
 import io.flutter.Log
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -55,6 +56,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
     const val inComingChannelName = "incoming"
     const val aclChannelName = "acl_connection"
     const val errorChannelName = "error"
+    const val serverStatusChannelName = "serverStatus"
 
     const val isAvailable = "isAvailable"
     const val isOn = "isOn"
@@ -66,6 +68,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
     const val startDiscovery = "startDiscovery"
     const val stopDiscovery = "stopDiscovery"
     const val startServer = "startServer"
+    const val stopServer = "stopServer"
     const val connectToServer = "connectToServer"
     const val pairDevice = "pairDevice"
     const val sendMessage = "sendMessage"
@@ -89,6 +92,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
   private  var incomingMessagesChannel: EventChannel? = null
   private var aclConnectionChannel: EventChannel? = null
   private var errorChannel: EventChannel? = null
+  private var serverStatusChannel: EventChannel? = null
 
 
   private  var deviceFoundReceiver: DeviceFoundReceiver? = null
@@ -98,6 +102,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
   private var aclConnectionReceiver: AclConnectionReceiver? = null
   private var incomingMessagesStreamHandler: IncomingMessagesStreamHandler? = null
   private var errorStreamHandler: ErrorStreamHandler? = null
+  private var serverStatusStreamHandler: ServerStatusStreamHandler? = null
 
   private var connectionHandler: BluetoothConnection? = null
   private var bondingStateReceiver: BondingStateReceiver? = null
@@ -107,6 +112,8 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
 
   private var bluetoothSocket: BluetoothSocket? = null
   private lateinit var messenger: FlutterPlugin.FlutterPluginBinding
+
+  private var server: BluetoothServer? = null
 
 
 
@@ -138,12 +145,14 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
 
     createAclConnectionChannel(flutterPluginBinding)
     createErrorChannel(flutterPluginBinding)
+    createServerStatusChannel(flutterPluginBinding)
 
     Log.d(TAG, "onAttachedToEngine: JafraBluetoothPlugin was created")
   }
 
   override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
     channel.setMethodCallHandler(null)
+    server = null
     closeConnection()
     cleanDiscoveryStateChannel()
     cleanConnectionStateChannel()
@@ -152,6 +161,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
     cleanAdapterStateChannel()
     cleanAclConnectionChannel()
     cleanErrorChannel()
+    cleanServerStatusChannel()
   }
 
 
@@ -267,8 +277,8 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
         if (bluetoothAdapter.isDiscovering) {
           bluetoothAdapter.cancelDiscovery()
         }
-        val server = BluetoothServer(bluetoothAdapter)
-        server.startServer(
+         server = BluetoothServer(bluetoothAdapter, serverStatusStreamHandler)
+        server?.startServer(
           onConnected = { socket, remoteDevice ->
             // Save socket and start I/O stream handling
             Log.d(TAG, "Server accepted connection")
@@ -292,6 +302,10 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
           }
         )
         result.success("server_started")
+      }
+
+      stopServer -> {
+        server?.stopServer()
       }
 
       connectToServer -> {
@@ -522,6 +536,18 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
     errorChannel?.setStreamHandler(null)
     errorChannel = null
     errorStreamHandler = null
+  }
+
+  private fun createServerStatusChannel(binding: FlutterPlugin.FlutterPluginBinding) {
+    serverStatusStreamHandler = ServerStatusStreamHandler()
+    serverStatusChannel = EventChannel(binding.binaryMessenger, "$channelName/$serverStatusChannelName")
+    serverStatusChannel?.setStreamHandler(serverStatusStreamHandler)
+  }
+
+  private fun cleanServerStatusChannel() {
+    serverStatusChannel?.setStreamHandler(null)
+    serverStatusChannel = null
+    serverStatusStreamHandler = null
   }
 
   private fun closeConnection() {
