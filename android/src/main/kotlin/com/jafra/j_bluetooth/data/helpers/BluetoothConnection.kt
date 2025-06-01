@@ -16,7 +16,8 @@ import java.io.OutputStream
 class BluetoothConnection(
     private val socket: BluetoothSocket,
     private val connectionStateStreamHandler: ConnectionStateStreamHandler?,
-    private val incomingMessagesStreamHandler: IncomingMessagesStreamHandler?
+    private val incomingMessagesStreamHandler: IncomingMessagesStreamHandler?,
+    private val onLostConnection: () -> Unit
 ) {
 
     private var inputStream: InputStream? = null
@@ -50,9 +51,9 @@ class BluetoothConnection(
 
                     }
                 } catch (e: IOException) {
-                    Log.e("BluetoothConnection", "Read failed", e)
                     withContext(Dispatchers.Main) {
                         connectionStateStreamHandler?.notifyDisconnected()
+                        onLostConnection()
                     }
 
                     break

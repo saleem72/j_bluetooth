@@ -276,7 +276,10 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
             connectionHandler = BluetoothConnection(
               socket,
               connectionStateStreamHandler,
-              incomingMessagesStreamHandler
+              incomingMessagesStreamHandler,
+              onLostConnection = {
+                closeConnection()
+              }
             )
             connectionHandler?.start()
             connectionStateStreamHandler?.notifyConnected(remoteDevice)
@@ -311,7 +314,10 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
             connectionHandler = BluetoothConnection(
               socket,
               connectionStateStreamHandler,
-              incomingMessagesStreamHandler
+              incomingMessagesStreamHandler,
+              onLostConnection = {
+                closeConnection()
+              }
             )
             connectionHandler?.start()
             connectionStateStreamHandler?.notifyConnected(remoteDevice)
