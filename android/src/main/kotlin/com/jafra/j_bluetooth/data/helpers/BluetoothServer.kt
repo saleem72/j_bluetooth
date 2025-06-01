@@ -11,6 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import java.io.IOException
 
 class BluetoothServer(
@@ -22,6 +23,7 @@ class BluetoothServer(
     private var serverSocket: BluetoothServerSocket? = null
 
     fun startServer(
+        timeoutMs: Long = 10000L,
         onConnected: (BluetoothSocket, BluetoothDevice) -> Unit,
         onError: (Exception) -> Unit
     ) {
@@ -35,7 +37,11 @@ class BluetoothServer(
                     BluetoothConstants.uuid
                 )
                 Log.d("BluetoothServer", "Waiting for client...")
-                val socket = serverSocket?.accept() // Blocking call
+                var socket: BluetoothSocket? = null
+                withTimeout(timeoutMs) {
+                    socket = serverSocket?.accept()
+                }
+                 // Blocking call
                 Log.d("BluetoothServer", "Client connected")
 
                 socket?.let {
