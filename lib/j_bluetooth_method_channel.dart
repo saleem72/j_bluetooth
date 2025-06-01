@@ -513,6 +513,11 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
   Stream<ConnectedDevice> connectedDevice() {
     return _aclConnectionController.stream;
   }
+
+  @override
+  Stream<bool> serverStatus() {
+    return _serverStatusController.stream;
+  }
 }
 
 abstract class _BluetoothKeys {
