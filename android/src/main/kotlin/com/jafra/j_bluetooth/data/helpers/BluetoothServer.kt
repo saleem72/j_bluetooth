@@ -11,7 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.IOException
 
 class BluetoothServer(
@@ -36,35 +36,46 @@ class BluetoothServer(
                     BluetoothConstants.appName,
                     BluetoothConstants.uuid
                 )
-                Log.d("BluetoothServer", "Waiting for client...")
-                var socket: BluetoothSocket? = null
-                withTimeout(timeoutMs) {
-                    socket = serverSocket?.accept()
-                }
-                 // Blocking call
-                Log.d("BluetoothServer", "Client connected")
 
-                socket?.let {
-                    val remoteDevice = it.remoteDevice
+                Log.d("BluetoothServer", "Waiting for client...")
+
+                val socket: BluetoothSocket? = withTimeoutOrNull(timeoutMs) {
+                    serverSocket?.accept() // blocking call in IO dispatcher
+                }
+
+                if (socket != null) {
+                    val remoteDevice = socket.remoteDevice
                     withContext(Dispatchers.Main) {
-                        onConnected(it, remoteDevice) // Execute onConnected on UI thread
+                        onConnected(socket, remoteDevice)
                         serverStatusStreamHandler?.notify(false)
                     }
-                    serverSocket?.close()
+                } else {
+                    // Timed out waiting for client
+                    withContext(Dispatchers.Main) {
+                        Log.d("BluetoothServer", "Accept timeout")
+                        onError(IOException("Bluetooth accept() timed out"))
+                        serverStatusStreamHandler?.notify(false)
+                    }
                 }
+
             } catch (e: IOException) {
                 withContext(Dispatchers.Main) {
                     Log.e("BluetoothServer", "Server error: ${e.message}")
-                    onError(e) // Execute onError on UI thread
+                    onError(e)
                     serverStatusStreamHandler?.notify(false)
                 }
             } finally {
-                serverSocket?.close()
+                try {
+                    serverSocket?.close()
+                } catch (e: IOException) {
+                    Log.e("BluetoothServer", "Error closing server socket", e)
+                }
                 withContext(Dispatchers.Main) {
                     serverStatusStreamHandler?.notify(false)
                 }
             }
         }
+
     }
 
 //    fun startServer(onConnected: (BluetoothSocket) -> Unit, onError: (Exception) -> Unit) {
