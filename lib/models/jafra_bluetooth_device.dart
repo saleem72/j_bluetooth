@@ -19,6 +19,8 @@ class JafraBluetoothDevice extends Equatable {
   final BluetoothDeviceMajorType majorCategory;
   final BluetoothDeviceMinorType? minorCategory;
 
+  bool get isBond => bond == BluetoothDeviceBondStatus.bonded;
+
   const JafraBluetoothDevice({
     this.name,
     required this.address,
