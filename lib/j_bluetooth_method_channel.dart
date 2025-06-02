@@ -131,7 +131,7 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
         ManagedStreamController<JafraBluetoothDevice>(
       streamFactory: () => _deviceFoundChannel
           .receiveBroadcastStream()
-          .map((event) => JafraBluetoothDevice.fromMap(event)),
+          .map((event) => JafraBluetoothDeviceExtension.fromMap(event)),
     );
 
     _deviceFoundController = _deviceFoundManagedController.create();
@@ -460,7 +460,7 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
           await methodChannel.invokeMethod(_BluetoothKeys.pairedDevices);
       if (data is List) {
         final devices =
-            data.map((e) => JafraBluetoothDevice.fromMap(e)).toList();
+            data.map((e) => JafraBluetoothDeviceExtension.fromMap(e)).toList();
         return devices;
       }
       return [];
