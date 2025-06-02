@@ -35,13 +35,13 @@ class BluetoothServer(
                     BluetoothConstants.appName,
                     BluetoothConstants.uuid
                 )
+                Log.d("BluetoothServer", "Some thing has changed...")
                 Log.d("BluetoothServer", "Waiting for client...")
                 val socket = serverSocket?.accept() // Blocking call
                 Log.d("BluetoothServer", "Client connected")
 
                 socket?.let {
                     val remoteDevice = it.remoteDevice
-                    Log.d("BluetoothServer", "connected to ${remoteDevice.name}")
                     withContext(Dispatchers.Main) {
                         onConnected(it, remoteDevice) // Execute onConnected on UI thread
                         serverStatusStreamHandler?.notify(false)

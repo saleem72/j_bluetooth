@@ -112,7 +112,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
   private var bluetoothSocket: BluetoothSocket? = null
   private lateinit var messenger: FlutterPlugin.FlutterPluginBinding
 
-  private var server: BluetoothServer? = null
+//  private var server: BluetoothServer? = null
 
 
 
@@ -151,7 +151,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
 
   override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
     channel.setMethodCallHandler(null)
-    server = null
+//    server = null
     closeConnection()
     cleanDiscoveryStateChannel()
     cleanConnectionStateChannel()
@@ -278,8 +278,8 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
         }
         val seconds: Int? = call.argument("seconds")
         val timeoutMs = seconds?.times(1000) ?: 15000
-        server = BluetoothServer(bluetoothAdapter, serverStatusStreamHandler)
-        server?.startServer(
+        val server = BluetoothServer(bluetoothAdapter, serverStatusStreamHandler)
+        server.startServer(
           timeoutMs,
           onConnected = { socket, remoteDevice ->
 
@@ -305,9 +305,9 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
         result.success("server_started")
       }
 
-      stopServer -> {
-        server?.stopServer()
-      }
+//      stopServer -> {
+//        server?.stopServer()
+//      }
 
       connectToServer -> {
         if (bluetoothAdapter.isDiscovering) {
