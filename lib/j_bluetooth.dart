@@ -57,4 +57,6 @@ class JBluetooth {
   Stream<JafraError> pluginErrors() => singleton.pluginErrors();
 
   Stream<ConnectingStatus> serverStatus() => singleton.serverStatus();
+
+  Future<void> endConnection() => singleton.endConnection();
 }

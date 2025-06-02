@@ -78,4 +78,6 @@ abstract class JBluetoothPlatform extends PlatformInterface {
   Stream<JafraError> pluginErrors();
 
   Stream<ConnectingStatus> serverStatus();
+
+  Future<void> endConnection();
 }

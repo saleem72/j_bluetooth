@@ -525,6 +525,11 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
   Stream<ConnectingStatus> serverStatus() {
     return _serverStatusController.stream;
   }
+
+  @override
+  Future<void> endConnection() async {
+    await methodChannel.invokeMethod(_BluetoothKeys.endConnection);
+  }
 }
 
 abstract class _BluetoothKeys {
@@ -550,6 +555,7 @@ abstract class _BluetoothKeys {
   static const String connectToServer = 'connectToServer';
   // static const String pairDevice = 'pairDevice';
   static const String sendMessage = 'sendMessage';
+  static const String endConnection = 'endConnection';
 
   static const String pairedDevices = 'pairedDevices';
   static const String aclChannelName = 'acl_connection';

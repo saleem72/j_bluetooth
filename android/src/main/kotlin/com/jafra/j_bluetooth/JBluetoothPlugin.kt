@@ -73,6 +73,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
     const val sendMessage = "sendMessage"
     const val pairedDevices = "pairedDevices"
     const val dispose = "dispose"
+    const val endConnection = "endConnection"
 //    const val uuidString = "00001101-0000-1000-8000-00805F9B34FB"
 
 //    const val ensurePermissions = "ensurePermissions"
@@ -351,6 +352,11 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
         result.success("connecting")
       }
 
+      endConnection -> {
+        closeConnection()
+        result.success("connection was closed")
+      }
+
       sendMessage -> {
         val message = call.argument<String>("message")
         connectionHandler?.write(message ?: "")
@@ -560,6 +566,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
     bluetoothSocket?.close()
     connectionHandler = null
     bluetoothSocket = null
+    serverStatusStreamHandler?.notify(serverStatus = false, connectionStatus = false)
   }
 
 }
