@@ -35,42 +35,72 @@ class BluetoothServer(
                     BluetoothConstants.appName,
                     BluetoothConstants.uuid
                 )
-
                 Log.d("BluetoothServer", "Waiting for client...")
-                val socket: BluetoothSocket? = serverSocket?.accept(timeoutMs)
-                Log.d("BluetoothServer", "Waiting has ended")
+                val socket = serverSocket?.accept() // Blocking call
+                Log.d("BluetoothServer", "Client connected")
 
-                if (socket != null) {
-                    val remoteDevice = socket.remoteDevice
+                socket?.let {
+                    val remoteDevice = it.remoteDevice
+                    Log.d("BluetoothServer", "connected to ${remoteDevice.name}")
                     withContext(Dispatchers.Main) {
-                        onConnected(socket, remoteDevice)
-                        serverStatusStreamHandler?.notify(serverStatus = false)
+                        onConnected(it, remoteDevice) // Execute onConnected on UI thread
+                        serverStatusStreamHandler?.notify(false)
                     }
-                } else {
-                    // Timed out waiting for client
-                    withContext(Dispatchers.Main) {
-                        Log.d("BluetoothServer", "Accept timeout")
-                        onError(IOException("Bluetooth accept() timed out"))
-                        serverStatusStreamHandler?.notify(serverStatus = false)
-                    }
+                    serverSocket?.close()
                 }
-
             } catch (e: IOException) {
-                Log.d("Server error", "startServer: Bluetooth accept() timed out")
                 withContext(Dispatchers.Main) {
-                    onError(e)
-                    serverStatusStreamHandler?.notify(serverStatus = false)
+                    Log.e("BluetoothServer", "Server error: ${e.message}")
+                    onError(e) // Execute onError on UI thread
+                    serverStatusStreamHandler?.notify(false)
                 }
             } finally {
-                try {
-                    serverSocket?.close()
-                } catch (e: IOException) {
-                    Log.e("BluetoothServer", "Error closing server socket", e)
-                }
+                serverSocket?.close()
                 withContext(Dispatchers.Main) {
-                    serverStatusStreamHandler?.notify(serverStatus = false)
+                    serverStatusStreamHandler?.notify(false)
                 }
             }
+//            try {
+//                serverSocket = adapter.listenUsingRfcommWithServiceRecord(
+//                    BluetoothConstants.appName,
+//                    BluetoothConstants.uuid
+//                )
+//
+//                Log.d("BluetoothServer", "Waiting for client...")
+//                val socket: BluetoothSocket? = serverSocket?.accept(timeoutMs)
+//                Log.d("BluetoothServer", "Waiting has ended")
+//
+//                if (socket != null) {
+//                    val remoteDevice = socket.remoteDevice
+//                    withContext(Dispatchers.Main) {
+//                        onConnected(socket, remoteDevice)
+//                        serverStatusStreamHandler?.notify(serverStatus = false)
+//                    }
+//                } else {
+//                    // Timed out waiting for client
+//                    withContext(Dispatchers.Main) {
+//                        Log.d("BluetoothServer", "Accept timeout")
+//                        onError(IOException("Bluetooth accept() timed out"))
+//                        serverStatusStreamHandler?.notify(serverStatus = false)
+//                    }
+//                }
+//
+//            } catch (e: IOException) {
+//                Log.d("Server error", "startServer: Bluetooth accept() timed out")
+//                withContext(Dispatchers.Main) {
+//                    onError(e)
+//                    serverStatusStreamHandler?.notify(serverStatus = false)
+//                }
+//            } finally {
+//                try {
+//                    serverSocket?.close()
+//                } catch (e: IOException) {
+//                    Log.e("BluetoothServer", "Error closing server socket", e)
+//                }
+//                withContext(Dispatchers.Main) {
+//                    serverStatusStreamHandler?.notify(serverStatus = false)
+//                }
+//            }
         }
 
     }

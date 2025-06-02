@@ -103,7 +103,6 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
     _discoveryStateManagedController = ManagedStreamController(
       streamFactory: () =>
           _discoveryStateChannel.receiveBroadcastStream().map((event) {
-        log(event.toString(), name: "MethodChannelJafraBluetooth");
         if (event == true) {
           return true;
         }

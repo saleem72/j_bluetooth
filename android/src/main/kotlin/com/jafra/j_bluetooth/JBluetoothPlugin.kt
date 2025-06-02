@@ -282,7 +282,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
         server?.startServer(
           timeoutMs,
           onConnected = { socket, remoteDevice ->
-            // Save socket and start I/O stream handling
+
             Log.d(TAG, "Server accepted connection")
             bluetoothSocket = socket
             connectionHandler = BluetoothConnection(
