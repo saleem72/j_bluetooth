@@ -37,7 +37,7 @@ class BluetoothServer(
                 )
                 Log.d("BluetoothServer", "Some thing has changed...")
                 Log.d("BluetoothServer", "Waiting for client...")
-                val socket = serverSocket?.accept() // Blocking call
+                val socket = serverSocket?.accept(timeoutMs) // Blocking call
                 Log.d("BluetoothServer", "Client connected")
 
                 socket?.let {

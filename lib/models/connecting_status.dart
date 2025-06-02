@@ -22,4 +22,8 @@ class ConnectingStatus {
         serverStatus: false,
         connectionStatus: false,
       );
+
+  @override
+  String toString() =>
+      'ConnectingStatus(serverStatus: $serverStatus, connectionStatus: $connectionStatus)';
 }
