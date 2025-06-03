@@ -48,7 +48,8 @@ class JBluetooth {
 
   Future<void> startServer({int? seconds}) => singleton.startServer(seconds);
 
-  Future<void> sendMessage(String message) => singleton.sendMessage(message);
+  Future<void> sendMessage({required String message, required bool isFile}) =>
+      singleton.sendMessage(message, isFile);
 
   Future<void> connectToServer(JafraBluetoothDevice device) =>
       singleton.connectToServer(device);

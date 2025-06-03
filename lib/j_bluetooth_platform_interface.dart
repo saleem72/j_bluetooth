@@ -66,7 +66,7 @@ abstract class JBluetoothPlatform extends PlatformInterface {
 
   Stream<BluetoothConnectionState> connectionState();
 
-  Future<void> sendMessage(String message);
+  Future<void> sendMessage(String message, bool isFile);
 
   Future<void> connectToServer(JafraBluetoothDevice device);
 

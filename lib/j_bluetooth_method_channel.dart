@@ -422,10 +422,11 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
   }
 
   @override
-  Future<void> sendMessage(String message) async {
+  Future<void> sendMessage(String message, bool isFile) async {
     try {
       await methodChannel.invokeMethod(_BluetoothKeys.sendMessage, {
         'message': message,
+        'isFile': isFile,
       });
     } catch (e, stackTrace) {
       log(
