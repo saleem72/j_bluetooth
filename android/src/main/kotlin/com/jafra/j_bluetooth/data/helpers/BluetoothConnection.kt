@@ -1,7 +1,6 @@
 package com.jafra.j_bluetooth.data.helpers
 
 import android.bluetooth.BluetoothSocket
-import android.util.Base64
 import com.jafra.j_bluetooth.data.streams.ConnectionStateStreamHandler
 import com.jafra.j_bluetooth.data.streams.IncomingMessagesStreamHandler
 import io.flutter.Log
@@ -117,9 +116,10 @@ class BluetoothConnection(
                                 readTotal += read
                             }
 
-                            val base64 = Base64.encodeToString(fileBuffer, Base64.NO_WRAP)
+                            val actualPayload = fileBuffer.copyOfRange(1, fileBuffer.size) // remove 0x02 prefix
+                            val base64 = String(actualPayload, Charsets.UTF_8) // now it's exactly what Flutter sent
                             withContext(Dispatchers.Main) {
-                                incomingMessagesStreamHandler?.sendIncomingMessage(base64.drop(1))
+                                incomingMessagesStreamHandler?.sendIncomingMessage(base64)
 
                             }
                         }
