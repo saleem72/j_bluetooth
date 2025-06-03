@@ -118,6 +118,7 @@ class BluetoothConnection(
 
                             val actualPayload = fileBuffer.copyOfRange(1, fileBuffer.size) // remove 0x02 prefix
                             val base64 = String(actualPayload, Charsets.UTF_8) // now it's exactly what Flutter sent
+                            Log.d("received data", base64 )
                             withContext(Dispatchers.Main) {
                                 incomingMessagesStreamHandler?.sendIncomingMessage(base64)
 
