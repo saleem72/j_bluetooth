@@ -163,7 +163,7 @@ class BluetoothConnection(
                 val lengthPrefix = ByteBuffer.allocate(4).order(ByteOrder.BIG_ENDIAN).putInt(dataBytes.size).array()
                 val finalMessage = ByteArray(1 + 4 + dataBytes.size)
                 finalMessage[0] = 0x02 // file type
-                System.arraycopy(lengthPrefix, 0, finalMessage, 1, 4)
+//                System.arraycopy(lengthPrefix, 0, finalMessage, 1, 4)
                 System.arraycopy(dataBytes, 0, finalMessage, 5, dataBytes.size)
                 finalMessage
             } else {
