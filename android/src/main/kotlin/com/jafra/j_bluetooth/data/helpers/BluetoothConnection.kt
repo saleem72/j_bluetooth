@@ -82,6 +82,7 @@ class BluetoothConnection(
 
                     when (typeBuffer[0]) {
                         0x01.toByte() -> { // Text message
+                            Log.d("BluetoothConnection", "received type: Text Message" )
                             val textBuffer = ByteArray(1024)
                             val len = inputStream?.read(textBuffer) ?: -1
                             if (len > 0) {
@@ -95,6 +96,7 @@ class BluetoothConnection(
 
                         0x02.toByte() -> { // File transfer
                             // Read 4-byte file size
+                            Log.d("BluetoothConnection", "received type: File transfer" )
                             var totalSizeRead = 0
                             while (totalSizeRead < 4) {
                                 val read = inputStream?.read(sizeBuffer, totalSizeRead, 4 - totalSizeRead) ?: -1
@@ -150,6 +152,7 @@ class BluetoothConnection(
     }
 
     fun write(data: String, isFile: Boolean ) {
+        Log.d("BluetoothConnection", "isFile: $isFile" )
         try {
             val dataBytes = data.toByteArray()
             val message: ByteArray = if (isFile) {
