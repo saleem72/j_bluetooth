@@ -1,3 +1,4 @@
+import 'package:j_bluetooth/models/base_device_info.dart';
 import 'package:j_bluetooth/models/bluetooth_adapter_state.dart';
 import 'package:j_bluetooth/models/bluetooth_connection_state.dart';
 import 'package:j_bluetooth/models/connected_device.dart';
@@ -80,4 +81,6 @@ abstract class JBluetoothPlatform extends PlatformInterface {
   Stream<ConnectingStatus> serverStatus();
 
   Future<void> endConnection();
+
+  Future<BaseDeviceInfo> deviceInfo();
 }

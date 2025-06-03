@@ -5,3 +5,6 @@ export 'bluetooth_device_minor_type.dart';
 export './connected_device.dart';
 export './connecting_status.dart';
 export './bluetooth_device_bond_status.dart';
+export './base_device_info.dart';
+export './android_device_info.dart';
+export './ios_device_info.dart';

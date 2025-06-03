@@ -3,6 +3,7 @@ import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:j_bluetooth/models/base_device_info.dart';
 import 'package:j_bluetooth/models/bluetooth_adapter_state.dart';
 import 'package:j_bluetooth/models/bluetooth_connection_state.dart';
 import 'package:j_bluetooth/models/connected_device.dart';
@@ -391,12 +392,34 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
   }
 
   @override
-  Future<void> startDiscover() async =>
+  Future<void> startDiscover() async {
+    try {
       await methodChannel.invokeMethod(_BluetoothKeys.startDiscovery);
+    } catch (e, stackTrace) {
+      log(
+        'Failed to connect to server',
+        error: e,
+        stackTrace: stackTrace,
+        name: _logName,
+      );
+      return;
+    }
+  }
 
   @override
-  Future<void> stopDiscover() async =>
+  Future<void> stopDiscover() async {
+    try {
       await methodChannel.invokeMethod(_BluetoothKeys.stopDiscovery);
+    } catch (e, stackTrace) {
+      log(
+        'Failed to connect to server',
+        error: e,
+        stackTrace: stackTrace,
+        name: _logName,
+      );
+      return;
+    }
+  }
 
   @override
   Future<void> sendMessage(String message) async {
@@ -491,6 +514,25 @@ class MethodChannelJBluetooth extends JBluetoothPlatform {
   }
 
   @override
+  Future<BaseDeviceInfo> deviceInfo() async {
+    try {
+      final response =
+          await methodChannel.invokeMethod(_BluetoothKeys.getDeviceInfo);
+      final data = response.cast<String, dynamic>();
+      final info = BaseDeviceInfo(data);
+      return info;
+    } catch (e, stackTrace) {
+      log(
+        'Failed to open bluetooth setting',
+        error: e,
+        stackTrace: stackTrace,
+        name: _logName,
+      );
+      return BaseDeviceInfo({});
+    }
+  }
+
+  @override
   Stream<JafraError> pluginErrors() => _jafraErrorController.stream;
 
   @override
@@ -560,4 +602,5 @@ abstract class _BluetoothKeys {
   static const String pairedDevices = 'pairedDevices';
   static const String aclChannelName = 'acl_connection';
   static const String dispose = 'dispose';
+  static const String getDeviceInfo = 'getDeviceInfo';
 }

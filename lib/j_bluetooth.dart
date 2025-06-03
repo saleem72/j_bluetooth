@@ -1,11 +1,18 @@
+//
+
+import 'dart:io' as io;
+
+import 'package:j_bluetooth/models/base_device_info.dart';
 import 'package:j_bluetooth/models/bluetooth_adapter_state.dart';
 import 'package:j_bluetooth/models/bluetooth_connection_state.dart';
 import 'package:j_bluetooth/models/connected_device.dart';
 import 'package:j_bluetooth/models/connecting_status.dart';
+import 'package:j_bluetooth/models/ios_device_info.dart';
 import 'package:j_bluetooth/models/jafra_bluetooth_device.dart';
 import 'package:j_bluetooth/models/jafra_error.dart';
 
 import 'j_bluetooth_platform_interface.dart';
+import 'models/android_device_info.dart';
 
 export './models/models.dart';
 export './views/views.dart';
@@ -59,4 +66,35 @@ class JBluetooth {
   Stream<ConnectingStatus> serverStatus() => singleton.serverStatus();
 
   Future<void> endConnection() => singleton.endConnection();
+
+  /// This information does not change from call to call. Cache it.
+  AndroidDeviceInfo? _cachedAndroidDeviceInfo;
+
+  /// Information derived from `android.os.Build`.
+  ///
+  /// See: https://developer.android.com/reference/android/os/Build.html
+  Future<AndroidDeviceInfo> get androidInfo async =>
+      _cachedAndroidDeviceInfo ??=
+          AndroidDeviceInfo.fromMap((await singleton.deviceInfo()).data);
+
+  /// This information does not change from call to call. Cache it.
+  IosDeviceInfo? _cachedIosDeviceInfo;
+
+  /// Information derived from `UIDevice`.
+  ///
+  /// See: https://developer.apple.com/documentation/uikit/uidevice
+  Future<IosDeviceInfo> get iosInfo async => _cachedIosDeviceInfo ??=
+      IosDeviceInfo.fromMap((await singleton.deviceInfo()).data);
+
+  /// Returns device information for the current platform.
+  // @override
+  Future<BaseDeviceInfo> get deviceInfo async {
+    if (io.Platform.isAndroid) {
+      return androidInfo;
+    } else if (io.Platform.isIOS) {
+      return iosInfo;
+    }
+    // allow for extension of the plugin
+    return singleton.deviceInfo();
+  }
 }

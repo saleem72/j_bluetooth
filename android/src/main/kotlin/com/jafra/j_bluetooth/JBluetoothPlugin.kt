@@ -3,6 +3,7 @@ package com.jafra.j_bluetooth
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.ActivityManager
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
@@ -17,6 +18,7 @@ import androidx.core.content.ContextCompat
 import com.jafra.j_bluetooth.data.helpers.BluetoothClient
 import com.jafra.j_bluetooth.data.helpers.BluetoothConnection
 import com.jafra.j_bluetooth.data.helpers.BluetoothServer
+import com.jafra.j_bluetooth.data.helpers.DeviceInfoHelper
 import com.jafra.j_bluetooth.data.mappers.toJafraBluetoothDevice
 import com.jafra.j_bluetooth.data.mappers.toMap
 import com.jafra.j_bluetooth.data.receivers.AclConnectionReceiver
@@ -74,9 +76,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
     const val pairedDevices = "pairedDevices"
     const val dispose = "dispose"
     const val endConnection = "endConnection"
-//    const val uuidString = "00001101-0000-1000-8000-00805F9B34FB"
-
-//    const val ensurePermissions = "ensurePermissions"
+    const val getDeviceInfo = "getDeviceInfo"
   }
 
   private lateinit var bluetoothAdapter: BluetoothAdapter
@@ -112,12 +112,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
 
   private var bluetoothSocket: BluetoothSocket? = null
   private lateinit var messenger: FlutterPlugin.FlutterPluginBinding
-
-//  private var server: BluetoothServer? = null
-
-
-
-
+  private  var deviceInfoHelper: DeviceInfoHelper? = null
 
   override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
 
@@ -130,6 +125,8 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
       channelName
     )
     channel.setMethodCallHandler(this)
+
+    createDeviceInfoHelper()
 
     createDeviceFoundChannel(flutterPluginBinding)
 
@@ -152,7 +149,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
 
   override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
     channel.setMethodCallHandler(null)
-//    server = null
+    deviceInfoHelper = null
     closeConnection()
     cleanDiscoveryStateChannel()
     cleanConnectionStateChannel()
@@ -169,6 +166,10 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
   @SuppressLint("MissingPermission")
   override fun onMethodCall(call: MethodCall, result: Result) {
     when (call.method) {
+      getDeviceInfo -> {
+        val build =  deviceInfoHelper?.getBuild()
+        result.success(build)
+      }
 
       isAvailable -> {
         return result.success(true)
@@ -567,6 +568,14 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
     connectionHandler = null
     bluetoothSocket = null
     serverStatusStreamHandler?.notify(serverStatus = false, connectionStatus = false)
+  }
+
+  private fun createDeviceInfoHelper() {
+    val packageManager: PackageManager = context.packageManager
+    val activityManager: ActivityManager =
+      context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+    val contentResolver = context.contentResolver
+    deviceInfoHelper = DeviceInfoHelper(packageManager, activityManager, contentResolver)
   }
 
 }
