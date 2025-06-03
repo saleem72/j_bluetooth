@@ -87,7 +87,7 @@ class BluetoothConnection(
                             if (len > 0) {
                                 val message = String(textBuffer, 0, len)
 
-                                Log.d("received data", message )
+                                Log.d("data flow in:", message )
                                 withContext(Dispatchers.Main) {
                                     incomingMessagesStreamHandler?.sendIncomingMessage(message)
                                 }
@@ -119,7 +119,7 @@ class BluetoothConnection(
 
                             val actualPayload = fileBuffer.copyOfRange(1, fileBuffer.size) // remove 0x02 prefix
                             val base64 = String(actualPayload, Charsets.UTF_8) // now it's exactly what Flutter sent
-                            Log.d("received data", base64 )
+                            Log.d("data flow in:", base64 )
                             withContext(Dispatchers.Main) {
                                 incomingMessagesStreamHandler?.sendIncomingMessage(base64)
 
@@ -161,7 +161,8 @@ class BluetoothConnection(
             val message: ByteArray = if (isFile) {
                 // Prefix with 0x02 (file), then 4-byte length, then file data
                 val lengthPrefix = ByteBuffer.allocate(4).order(ByteOrder.BIG_ENDIAN).putInt(dataBytes.size).array()
-                val finalMessage = ByteArray(1 + 4 + dataBytes.size)
+//                val finalMessage = ByteArray(1 + 4 + dataBytes.size)
+                val finalMessage = ByteArray(1 + dataBytes.size)
                 finalMessage[0] = 0x02 // file type
 //                System.arraycopy(lengthPrefix, 0, finalMessage, 1, 4)
                 System.arraycopy(dataBytes, 0, finalMessage, 5, dataBytes.size)
@@ -173,7 +174,7 @@ class BluetoothConnection(
                 System.arraycopy(dataBytes, 0, finalMessage, 1, dataBytes.size)
                 finalMessage
             }
-
+            Log.d( "data flow out:", "$message")
             outputStream?.write(message)
             Log.d("BluetoothConnection", "Sent (${if (isFile) "file" else "text"}): ${data.take(100)}")
         } catch (e: IOException) {
