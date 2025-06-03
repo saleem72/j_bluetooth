@@ -86,7 +86,8 @@ class BluetoothConnection(
                             val len = inputStream?.read(textBuffer) ?: -1
                             if (len > 0) {
                                 val message = String(textBuffer, 0, len)
-                                Log.d("BluetoothConnection", "Text received: $message")
+
+                                Log.d("received data", message )
                                 withContext(Dispatchers.Main) {
                                     incomingMessagesStreamHandler?.sendIncomingMessage(message)
                                 }
