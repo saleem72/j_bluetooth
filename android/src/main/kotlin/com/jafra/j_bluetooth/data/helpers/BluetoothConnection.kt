@@ -89,8 +89,7 @@ class BluetoothConnection(
                                 val message = String(textBuffer, 0, len)
                                 Log.d("BluetoothConnection", "Text received: $message")
                                 withContext(Dispatchers.Main) {
-//                                    incomingMessagesStreamHandler?.sendIncomingMessage(message)
-                                    incomingMessagesStreamHandler?.sendIncomingMessage("T:$message")
+                                    incomingMessagesStreamHandler?.sendIncomingMessage(message)
                                 }
                             }
                         }
@@ -120,8 +119,8 @@ class BluetoothConnection(
 
                             val base64 = Base64.encodeToString(fileBuffer, Base64.NO_WRAP)
                             withContext(Dispatchers.Main) {
-//                                incomingMessagesStreamHandler?.sendIncomingMessage(base64)
-                                incomingMessagesStreamHandler?.sendIncomingMessage("F:$base64")
+                                incomingMessagesStreamHandler?.sendIncomingMessage(base64.drop(1))
+
                             }
                         }
 
