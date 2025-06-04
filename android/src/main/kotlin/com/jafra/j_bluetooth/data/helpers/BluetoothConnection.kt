@@ -84,6 +84,15 @@ class BluetoothConnection(
                         onLostConnection()
                     }
                     break
+                } catch (e: Exception) {
+                    // Catch any other exception
+                    Log.e("BluetoothConnection", "An unexpected error occurred", e)
+                    // You can add more specific handling here if needed
+                    withContext(Dispatchers.Main) {
+                        // Optionally, handle the unexpected exception differently
+                    }
+                    // Decide whether to break or continue based on the nature of the exception
+                    // break // Uncomment if you want to exit the loop on any other exception
                 }
             }
             isRunning = false
