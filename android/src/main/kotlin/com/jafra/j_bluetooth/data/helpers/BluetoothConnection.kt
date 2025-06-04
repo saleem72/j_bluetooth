@@ -36,6 +36,7 @@ class BluetoothConnection(
 
             while (isRunning) {
                 try {
+                    Log.d("BluetoothConnection", "Something happened")
                     val bytesRead = inputStream?.read(buffer) ?: -1 // Read into buffer
                     if (bytesRead > 0) {
                         receivedData.write(buffer, 0, bytesRead) // Append to receivedData
