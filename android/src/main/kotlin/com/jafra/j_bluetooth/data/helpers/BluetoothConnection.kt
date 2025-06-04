@@ -8,9 +8,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
+import java.nio.ByteBuffer
 
 class BluetoothConnection(
     private val socket: BluetoothSocket,
@@ -29,14 +31,73 @@ class BluetoothConnection(
         isRunning = true
 
         CoroutineScope(Dispatchers.IO).launch {
-            val available = inputStream?.available() ?: 1024
-            val buffer = ByteArray(available)
-//            val buffer = ByteArray(1024)
+            val buffer = ByteArray(1024) // Adjust buffer size
+            val receivedData = ByteArrayOutputStream() // Buffer for accumulating received data
+
             while (isRunning) {
                 try {
-                    inputStream?.read(buffer, 0, available)
-                    val text = String(buffer)
-                    Log.d("BluetoothConnection", "Received: $text")
+                    val bytesRead = inputStream?.read(buffer) ?: -1 // Read into buffer
+                    if (bytesRead > 0) {
+                        receivedData.write(buffer, 0, bytesRead) // Append to receivedData
+
+                        // Check for header or delimiter to process received data
+                        if (receivedData.size() >= 5) { // Check for header size
+                            val receivedBytes = receivedData.toByteArray()
+                            val dataType = receivedBytes[0].toInt()
+
+                            if (dataType == 0) { // Short message
+                                val delimiterIndex = receivedBytes.indexOf("\n".toByte()) // Find delimiter
+                                if (delimiterIndex != -1) {
+                                    val message = String(receivedBytes, 1, delimiterIndex - 1)
+                                    Log.d("BluetoothConnection", "Received short message: $message")
+                                    withContext(Dispatchers.Main) {
+                                        incomingMessagesStreamHandler?.sendIncomingMessage(message)
+                                    }
+                                    receivedData.reset() // Clear buffer for next message
+                                }
+                            } else if (dataType == 1 && receivedData.size() >= 5) { // File
+                                val fileSize = ByteBuffer.wrap(receivedBytes, 1, 4).getInt() // Extract file size
+                                if (receivedData.size() >= fileSize + 5) { // Check if full file received
+                                    val fileContent = receivedBytes.copyOfRange(5, fileSize + 5)
+                                    val base64 = String(fileContent, Charsets.UTF_8)
+                                    Log.d("BluetoothConnection", "Received file of size: $fileSize")
+                                    // Process the received file content (e.g., save to storage)
+                                    withContext(Dispatchers.Main) {
+                                        // Handle the received file content
+                                        incomingMessagesStreamHandler?.sendIncomingMessage(base64)
+                                    }
+                                    receivedData.reset() // Clear buffer for next file
+                                }
+                            }
+                        }
+                    } else if (bytesRead == -1) { // End of stream
+                        withContext(Dispatchers.Main) {
+                            connectionStateStreamHandler?.notifyDisconnected()
+                            onLostConnection()
+                        }
+                        break
+                    }
+                } catch (e: IOException) {
+                    withContext(Dispatchers.Main) {
+                        connectionStateStreamHandler?.notifyDisconnected()
+                        onLostConnection()
+                    }
+                    break
+                }
+            }
+            isRunning = false
+        }
+    }
+
+//    fun start() {
+//        inputStream = socket.inputStream
+//        outputStream = socket.outputStream
+//        isRunning = true
+//
+//        CoroutineScope(Dispatchers.IO).launch {
+//            val buffer = ByteArray(1024)
+//            while (isRunning) {
+//                try {
 //                    val bytesRead = inputStream?.read(buffer) ?: -1
 //                    if (bytesRead == -1) {
 //                        Log.d("BluetoothConnection", "Connection lost (stream closed)")
@@ -54,21 +115,18 @@ class BluetoothConnection(
 //                        }
 //
 //                    }
-                    withContext(Dispatchers.Main) {
-                        incomingMessagesStreamHandler?.sendIncomingMessage(text)
-                    }
-                } catch (e: IOException) {
-                    withContext(Dispatchers.Main) {
-                        connectionStateStreamHandler?.notifyDisconnected()
-                        onLostConnection()
-                    }
-
-                    break
-                }
-            }
-            isRunning = false
-        }
-    }
+//                } catch (e: IOException) {
+//                    withContext(Dispatchers.Main) {
+//                        connectionStateStreamHandler?.notifyDisconnected()
+//                        onLostConnection()
+//                    }
+//
+//                    break
+//                }
+//            }
+//            isRunning = false
+//        }
+//    }
 
 //    fun start() {
 //        inputStream = socket.inputStream
@@ -152,13 +210,47 @@ class BluetoothConnection(
 
     fun write(data: String) {
         try {
-            outputStream?.write(data.toByteArray())
-            Log.d("BluetoothConnection", "Sent: $data")
+            if (isShortMessage(data)) {
+                // Send short message with delimiter
+                outputStream?.write(data.toByteArray())
+                outputStream?.write("\n".toByteArray()) // Example delimiter
+                Log.d("BluetoothConnection", "Sent short message: $data")
+            } else {
+                // Send file with header and chunking
+                val fileBytes = data.toByteArray() // Or read from file
+                val fileSize = fileBytes.size
+                // Implement header: For instance, 1 byte for data type (0 for short, 1 for file), 4 bytes for file size
+                val header = byteArrayOf(1.toByte()) + ByteBuffer.allocate(4).putInt(fileSize).array()
+                outputStream?.write(header)
+
+                val bufferSize = 1024 // Adjust buffer size
+                val buffer = ByteArray(bufferSize)
+                var offset = 0
+                while (offset < fileSize) {
+                    val bytesToWrite = minOf(bufferSize, fileSize - offset)
+                    fileBytes.copyInto(buffer, 0, offset, offset + bytesToWrite)
+                    outputStream?.write(buffer, 0, bytesToWrite)
+                    offset += bytesToWrite
+                }
+                Log.d("BluetoothConnection", "Sent file of size: $fileSize")
+            }
+            outputStream?.flush() // Ensure data is sent
         } catch (e: IOException) {
             Log.e("BluetoothConnection", "Write failed", e)
             connectionStateStreamHandler?.notifyDisconnected()
         }
     }
+
+
+//    fun write(data: String) {
+//        try {
+//            outputStream?.write(data.toByteArray())
+//            Log.d("BluetoothConnection", "Sent: $data")
+//        } catch (e: IOException) {
+//            Log.e("BluetoothConnection", "Write failed", e)
+//            connectionStateStreamHandler?.notifyDisconnected()
+//        }
+//    }
 
 //    fun write(data: String, isFile: Boolean ) {
 //        Log.d("BluetoothConnection", "isFile: $isFile" )
@@ -197,5 +289,11 @@ class BluetoothConnection(
         } finally {
             connectionStateStreamHandler?.notifyDisconnected()
         }
+    }
+
+    // Helper function to determine if it's a short message
+    private fun isShortMessage(data: String): Boolean {
+        // Implement logic to differentiate short messages (e.g., based on length or a special marker)
+        return data.length < 100 // Example threshold
     }
 }
