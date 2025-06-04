@@ -360,7 +360,7 @@ class JBluetoothPlugin: FlutterPlugin, MethodCallHandler, ActivityAware,
 
       sendMessage -> {
         val message = call.argument<String>("message")
-        val isFile = call.argument<Boolean>("isFile")
+        Log.d(TAG, "sendMessage: $message")
         connectionHandler?.write(data= message ?: "")
       }
 
