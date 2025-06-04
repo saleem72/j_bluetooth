@@ -31,6 +31,86 @@ class BluetoothConnection(
         isRunning = true
 
         CoroutineScope(Dispatchers.IO).launch {
+            val sizeBuffer = ByteArray(4) // Buffer to read the string size
+            var receivedSize: Int? = null
+            val receivedData = ByteArrayOutputStream() // Buffer for accumulating received data
+
+            while (isRunning) {
+                try {
+                    Log.d("BluetoothConnection", "Get in process")
+
+                    if (receivedSize == null) {
+                        // Read the 4 bytes representing the string size
+                        val bytesReadSize = inputStream?.read(sizeBuffer) ?: -1
+                        if (bytesReadSize > 0) {
+                            receivedSize = ByteBuffer.wrap(sizeBuffer).getInt()
+                            Log.d("BluetoothConnection", "Received expected size: $receivedSize")
+                        } else if (bytesReadSize == -1) {
+                            // End of stream
+                            withContext(Dispatchers.Main) {
+                                connectionStateStreamHandler?.notifyDisconnected()
+                                onLostConnection()
+                            }
+                            break
+                        }
+                    }
+
+                    if (receivedSize != null) {
+                        // Read the string data in chunks until the full size is received
+                        val buffer = ByteArray(1024) // Adjust buffer size
+                        val bytesToRead = minOf(buffer.size, receivedSize - receivedData.size())
+
+                        if (bytesToRead > 0) {
+                            val bytesReadData = inputStream?.read(buffer, 0, bytesToRead) ?: -1
+                            if (bytesReadData > 0) {
+                                receivedData.write(buffer, 0, bytesReadData)
+                                Log.d("BluetoothConnection", "Received data chunk: $bytesReadData bytes, total received: ${receivedData.size()}")
+
+                                if (receivedData.size() == receivedSize) {
+                                    // Full string received
+                                    val receivedString = receivedData.toString()
+                                    Log.d("BluetoothConnection", "Received complete string: $receivedString")
+                                    withContext(Dispatchers.Main) {
+                                        incomingMessagesStreamHandler?.sendIncomingMessage(receivedString)
+                                    }
+
+                                    // Reset for the next message
+                                    receivedSize = null
+                                    receivedData.reset()
+                                }
+                            } else if (bytesReadData == -1) {
+                                // End of stream
+                                withContext(Dispatchers.Main) {
+                                    connectionStateStreamHandler?.notifyDisconnected()
+                                    onLostConnection()
+                                }
+                                break
+                            }
+                        }
+                    }
+                } catch (e: IOException) {
+                    withContext(Dispatchers.Main) {
+                        connectionStateStreamHandler?.notifyDisconnected()
+                        onLostConnection()
+                    }
+                    break
+                } catch (e: Exception) {
+                    Log.e("BluetoothConnection", "An unexpected error occurred", e)
+                    withContext(Dispatchers.Main) {
+                        // Optionally, handle the unexpected exception differently
+                    }
+                }
+            }
+            isRunning = false
+        }
+    }
+
+    fun startTemp() {
+        inputStream = socket.inputStream
+        outputStream = socket.outputStream
+        isRunning = true
+
+        CoroutineScope(Dispatchers.IO).launch {
             val buffer = ByteArray(1024) // Adjust buffer size
             val receivedData = ByteArrayOutputStream() // Buffer for accumulating received data
 
@@ -87,7 +167,6 @@ class BluetoothConnection(
                 } catch (e: Exception) {
                     // Catch any other exception
                     Log.e("BluetoothConnection", "An unexpected error occurred", e)
-                    // You can add more specific handling here if needed
                     withContext(Dispatchers.Main) {
                         // Optionally, handle the unexpected exception differently
                     }
@@ -220,36 +299,25 @@ class BluetoothConnection(
 
     fun write(data: String) {
         try {
-            if (isShortMessage(data)) {
-                // Send short message with delimiter
-                outputStream?.write(data.toByteArray())
-                outputStream?.write("\n".toByteArray()) // Example delimiter
-                Log.d("BluetoothConnection", "Sent short message: $data")
-            } else {
-                // Send file with header and chunking
-                val fileBytes = data.toByteArray() // Or read from file
-                val fileSize = fileBytes.size
-                // Implement header: For instance, 1 byte for data type (0 for short, 1 for file), 4 bytes for file size
-                val header = byteArrayOf(1.toByte()) + ByteBuffer.allocate(4).putInt(fileSize).array()
-                outputStream?.write(header)
+            val dataBytes = data.toByteArray()
+            val dataSize = dataBytes.size
 
-                val bufferSize = 1024 // Adjust buffer size
-                val buffer = ByteArray(bufferSize)
-                var offset = 0
-                while (offset < fileSize) {
-                    val bytesToWrite = minOf(bufferSize, fileSize - offset)
-                    fileBytes.copyInto(buffer, 0, offset, offset + bytesToWrite)
-                    outputStream?.write(buffer, 0, bytesToWrite)
-                    offset += bytesToWrite
-                }
-                Log.d("BluetoothConnection", "Sent file of size: $fileSize")
-            }
+            // Send the size of the string as an integer (4 bytes)
+            val sizeBytes = ByteBuffer.allocate(4).putInt(dataSize).array()
+            outputStream?.write(sizeBytes)
+
+            // Send the string data
+            outputStream?.write(dataBytes)
+
             outputStream?.flush() // Ensure data is sent
+
+            Log.d("BluetoothConnection", "Sent string of size: $dataSize")
         } catch (e: IOException) {
             Log.e("BluetoothConnection", "Write failed", e)
             connectionStateStreamHandler?.notifyDisconnected()
         }
     }
+
 
 
 //    fun write(data: String) {
