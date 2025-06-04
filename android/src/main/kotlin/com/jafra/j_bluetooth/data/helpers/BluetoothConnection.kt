@@ -34,22 +34,28 @@ class BluetoothConnection(
 //            val buffer = ByteArray(1024)
             while (isRunning) {
                 try {
-                    val bytesRead = inputStream?.read(buffer) ?: -1
-                    if (bytesRead == -1) {
-                        Log.d("BluetoothConnection", "Connection lost (stream closed)")
-                        withContext(Dispatchers.Main) {
-                            connectionStateStreamHandler?.notifyDisconnected()
-                        }
-
-                        break
-                    }
-                    if (bytesRead > 0) {
-                        val received = String(buffer, 0, bytesRead)
-                        Log.d("BluetoothConnection", "Received: $received")
-                        withContext(Dispatchers.Main) {
-                            incomingMessagesStreamHandler?.sendIncomingMessage(received)
-                        }
-
+                    inputStream?.read(buffer, 0, available)
+                    val text = String(buffer)
+                    Log.d("BluetoothConnection", "Received: $text")
+//                    val bytesRead = inputStream?.read(buffer) ?: -1
+//                    if (bytesRead == -1) {
+//                        Log.d("BluetoothConnection", "Connection lost (stream closed)")
+//                        withContext(Dispatchers.Main) {
+//                            connectionStateStreamHandler?.notifyDisconnected()
+//                        }
+//
+//                        break
+//                    }
+//                    if (bytesRead > 0) {
+//                        val received = String(buffer, 0, bytesRead)
+//                        Log.d("BluetoothConnection", "Received: $received")
+//                        withContext(Dispatchers.Main) {
+//                            incomingMessagesStreamHandler?.sendIncomingMessage(received)
+//                        }
+//
+//                    }
+                    withContext(Dispatchers.Main) {
+                        incomingMessagesStreamHandler?.sendIncomingMessage(text)
                     }
                 } catch (e: IOException) {
                     withContext(Dispatchers.Main) {
